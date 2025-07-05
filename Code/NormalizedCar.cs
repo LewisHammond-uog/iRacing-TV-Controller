@@ -448,7 +448,7 @@ namespace iRacingTVController
 
 			iRating = driver.IRating;
 			license = driver.LicString;
-			licenseColor = driver.LicColor;
+			licenseColor = "0xFFFFFF"; // driver.LicColor; -- no longer works
 
 			includeInLeaderboard = !isSpectator && !isPaceCar;
 
@@ -486,7 +486,6 @@ namespace iRacingTVController
 
 				if ( numberDesignMatch.Success && carDesignMatch.Success )
 				{
-					var licColor = driver.LicColor[ 2.. ];
 					var carPath = driver.CarPath.Replace( " ", "%5C" );
 					var customCarTgaFilePath = $"{Settings.editor.iracingCustomPaintsDirectory}\\{driver.CarPath}\\car_num_{driver.UserID}.tga";
 					var showSimStampedNumber = 0;
@@ -522,7 +521,7 @@ namespace iRacingTVController
 
 					customCarTgaFilePath = customCarTgaFilePath.Replace( " ", "%20" );
 
-					carTextureUrl = $"http://localhost:32034/pk_car.png?size=2&view=1&licCol={licColor}&club={driver.ClubID}&sponsors={driver.CarSponsor_1},{driver.CarSponsor_2}&numShow={showSimStampedNumber}&numPat={numberDesignMatch.Groups[ 1 ].Value}&numCol={numberDesignMatch.Groups[ 3 ].Value},{numberDesignMatch.Groups[ 4 ].Value},{numberDesignMatch.Groups[ 5 ].Value}&numSlnt={numberDesignMatch.Groups[ 2 ].Value}&number={carNumber}&carPath={carPath}&carPat={carDesignMatch.Groups[ 1 ].Value}&carCol={carDesignMatch.Groups[ 2 ].Value},{carDesignMatch.Groups[ 3 ].Value},{carDesignMatch.Groups[ 4 ].Value}&carRimType=2&carRimCol={carDesignMatch.Groups[ 5 ].Value}&carCustPaint={customCarTgaFilePath}";
+					carTextureUrl = $"http://localhost:32034/pk_car.png?size=2&view=1&club={driver.ClubID}&sponsors={driver.CarSponsor_1},{driver.CarSponsor_2}&numShow={showSimStampedNumber}&numPat={numberDesignMatch.Groups[ 1 ].Value}&numCol={numberDesignMatch.Groups[ 3 ].Value},{numberDesignMatch.Groups[ 4 ].Value},{numberDesignMatch.Groups[ 5 ].Value}&numSlnt={numberDesignMatch.Groups[ 2 ].Value}&number={carNumber}&carPath={carPath}&carPat={carDesignMatch.Groups[ 1 ].Value}&carCol={carDesignMatch.Groups[ 2 ].Value},{carDesignMatch.Groups[ 3 ].Value},{carDesignMatch.Groups[ 4 ].Value}&carRimType=2&carRimCol={carDesignMatch.Groups[ 5 ].Value}&carCustPaint={customCarTgaFilePath}";
 
 					LogFile.Write( $"{displayedName}'s car texture URL = {carTextureUrl}\r\n" );
 				}
@@ -531,7 +530,6 @@ namespace iRacingTVController
 
 				if ( helmetDesignMatch.Success )
 				{
-					var licColor = driver.LicColor[ 2.. ];
 					var helmetType = driver.HelmetType;
 					var customHelmetTgaFileName = $"{Settings.editor.iracingCustomPaintsDirectory}\\helmet_{driver.UserID}.tga";
 
@@ -542,7 +540,7 @@ namespace iRacingTVController
 
 					customHelmetTgaFileName = customHelmetTgaFileName.Replace( " ", "%20" );
 
-					helmetTextureUrl = $"http://localhost:32034/pk_helmet.png?size=7&hlmtPat={helmetDesignMatch.Groups[ 1 ].Value}&licCol={licColor}&hlmtCol={helmetDesignMatch.Groups[ 2 ].Value},{helmetDesignMatch.Groups[ 3 ].Value},{helmetDesignMatch.Groups[ 4 ].Value}&view=1&hlmtType={helmetType}&hlmtCustPaint={customHelmetTgaFileName}";
+					helmetTextureUrl = $"http://localhost:32034/pk_helmet.png?size=7&hlmtPat={helmetDesignMatch.Groups[ 1 ].Value}&hlmtCol={helmetDesignMatch.Groups[ 2 ].Value},{helmetDesignMatch.Groups[ 3 ].Value},{helmetDesignMatch.Groups[ 4 ].Value}&view=1&hlmtType={helmetType}&hlmtCustPaint={customHelmetTgaFileName}";
 
 					LogFile.Write( $"{displayedName}'s helmet texture URL = {helmetTextureUrl}\r\n" );
 				}
