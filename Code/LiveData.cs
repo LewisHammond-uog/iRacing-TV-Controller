@@ -245,8 +245,8 @@ namespace iRacingTVController
 
 			liveDataRaceStatus.textLayer1 = GetTextContent( out color, "RaceStatusTextLayer1" );
 			liveDataRaceStatus.textLayer2 = GetTextContent( out color, "RaceStatusTextLayer2" );
-			liveDataRaceStatus.textLayer3 = GetTextContent( out color, "RaceStatusTextLayer3" );
-			liveDataRaceStatus.textLayer4 = GetTextContent( out color, "RaceStatusTextLayer4" );
+			//liveDataRaceStatus.textLayer3 = GetTextContent( out color, "RaceStatusTextLayer3" );
+			//liveDataRaceStatus.textLayer4 = GetTextContent( out color, "RaceStatusTextLayer4" );
 
 			// flags
 
@@ -260,7 +260,7 @@ namespace iRacingTVController
 				{
 					liveDataRaceStatus.showCheckeredFlag = true;
 				}
-				else if ( ( IRSDK.normalizedData.sessionFlags & ( (uint) SessionFlags.CautionWaving ) ) != 0 )
+				else if ( ( IRSDK.normalizedData.sessionFlags & ( (uint) SessionFlags.CautionWaving | (uint)SessionFlags.Yellow | (uint)SessionFlags.YellowWaving ) ) != 0 )
 				{
 					liveDataRaceStatus.showYellowFlag = true;
 				}
@@ -270,9 +270,17 @@ namespace iRacingTVController
 				}
 			}
 
+			if (IRSDK.normalizedSession.isInPracticeSession || IRSDK.normalizedSession.isInQualifyingSession)
+			{
+				if ( IRSDK.normalizedData.sessionState >= SessionState.StateCheckered )
+				{
+					liveDataRaceStatus.showCheckeredFlag = true;
+				}
+			}
+
 			// one to green
 
-			liveDataRaceStatus.showOneToGreen = ( IRSDK.normalizedData.sessionFlags & ( (uint) SessionFlags.OneLapToGreen ) ) != 0;
+			liveDataRaceStatus.showOneToGreen = ( IRSDK.normalizedData.sessionFlags & ( (uint) SessionFlags.OneLapToGreen | (uint) SessionFlags.StartSet | (uint) SessionFlags.StartReady ) ) != 0;
 		}
 
 		public void UpdateLeaderboard( ref LiveDataLeaderboard[]? liveDataLeaderboards, bool splitLeaderboard )
@@ -1031,7 +1039,7 @@ namespace iRacingTVController
 
 							if ( driverIndex < IRSDK.normalizedData.numLeaderboardCars )
 							{
-								var normalizedCar = IRSDK.normalizedData.classLeaderboardSortedNormalizedCars[ driverIndex ];
+								var normalizedCar = IRSDK.normalizedData.leaderboardSortedNormalizedCars[ driverIndex ];
 
 								introCarIdx = normalizedCar.carIdx;
 							}
@@ -1041,7 +1049,7 @@ namespace iRacingTVController
 						{
 							var liveDataIntroDriver = liveDataIntro.liveDataIntroDrivers[ driverIndex ];
 
-							var normalizedCar = IRSDK.normalizedData.classLeaderboardSortedNormalizedCars[ driverIndex ];
+							var normalizedCar = IRSDK.normalizedData.leaderboardSortedNormalizedCars[ driverIndex ];
 
 							if ( normalizedCar.includeInLeaderboard && ( normalizedCar.qualifyingPosition < MaxNumDrivers ) )
 							{
@@ -1453,6 +1461,15 @@ namespace iRacingTVController
 
 					if ( normalizedCar != null )
 					{
+						if (IRSDK.normalizedSession.isInQualifyingSession || IRSDK.normalizedSession.isInQualifyingSession)
+						{
+							if (!normalizedCar.hasCrossedStartLine)
+							{
+								return "OUT LAP";
+							}
+						}
+						
+						
 						if ( ( normalizedCar.currentLapTime < 5 ) && ( normalizedCar.lastLapTime > 0 ) )
 						{
 							return Program.GetTimeString( normalizedCar.lastLapTime, true );
@@ -1539,6 +1556,13 @@ namespace iRacingTVController
 				case SettingsText.Content.Driver_QualifyPosition_Ordinal:
 
 					return ( normalizedCar?.qualifyingClassPosition >= 1 ) ? GetOrdinal( normalizedCar.qualifyingClassPosition ) : "";
+				
+				case SettingsText.Content.Driver_OverallQualityPosition_WithP:
+					
+					return ( normalizedCar?.qualifyingPosition >= 1 ) ? "P" + normalizedCar.qualifyingPosition.ToString() : "";
+				
+				case SettingsText.Content.Driver_QualifyPosition_WithP_WithClass:
+					return ( normalizedCar?.qualifyingClassPosition >= 1 ) ? "In Class: P" + normalizedCar.qualifyingClassPosition.ToString() : ""; 
 
 				case SettingsText.Content.Driver_QualifyTime:
 				{
@@ -1652,6 +1676,9 @@ namespace iRacingTVController
 									text = $"-{wholeLapsDown:0} {Settings.overlay.translationDictionary[ "LapsAbbreviation" ].translation}";
 
 									normalizedCar.checkpointTime = 0;
+								}else if (normalizedCarInFront == null) //No Car in front = leader!
+								{
+									text = "LEADER";
 								}
 								else if ( !IRSDK.normalizedData.isUnderCaution && ( normalizedCarInFront != null ) )
 								{
@@ -1769,6 +1796,25 @@ namespace iRacingTVController
 					return leaderboardClass?.shortName ?? "(error)";
 				}
 
+				case SettingsText.Content.ThisCar_LeaderboardClass:
+				{
+					if (normalizedCar == null)
+					{
+						return "";
+					}
+					
+					int carClassIndex = normalizedCar.leaderboardClassIndex;
+					var carClass = IRSDK.normalizedData.leaderboardClass[ carClassIndex ];
+
+					if (carClass.name == "")
+					{
+						return "Class";
+					}
+					
+					return carClass.name;
+					break;
+				}
+
 				case SettingsText.Content.Player_FuelRemainingInLaps:
 				{
 					var text = "-.--";
@@ -1847,6 +1893,9 @@ namespace iRacingTVController
 						return lapsRemaining.ToString() + " " + Settings.overlay.translationDictionary[ "ToGo" ].translation;
 					}
 				}
+				
+				case SettingsText.Content.Driver_FinialGapAheadClass:
+					return normalizedCar.gapTimeFront.ToString();
 
 				case SettingsText.Content.Session_Name:
 				{
