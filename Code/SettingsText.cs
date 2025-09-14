@@ -79,6 +79,12 @@ namespace iRacingTVController
 			Translation_Speed = 29,
 			Translation_Units = 30,
 			Translation_VoiceOf = 31,
+			
+			//My CustomOnes
+			ThisCar_LeaderboardClass = 101,
+			Driver_OverallQualityPosition_WithP = 102,
+			Driver_QualifyPosition_WithP_WithClass = 103,
+			Driver_FinialGapAheadClass
 		};
 
 		public FontIndex fontIndex = FontIndex.None;
