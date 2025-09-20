@@ -279,8 +279,9 @@ namespace iRacingTVController
 			}
 
 			// one to green
-
-			liveDataRaceStatus.showOneToGreen = ( IRSDK.normalizedData.sessionFlags & ( (uint) SessionFlags.OneLapToGreen | (uint) SessionFlags.StartSet | (uint) SessionFlags.StartReady ) ) != 0;
+			liveDataRaceStatus.showOneToGreen =
+				(IRSDK.normalizedData.sessionFlags &
+				 ((uint)(SessionFlags.OneLapToGreen | SessionFlags.StartSet | SessionFlags.StartReady | SessionFlags.StartHidden))) != 0;
 		}
 
 		public void UpdateLeaderboard( ref LiveDataLeaderboard[]? liveDataLeaderboards, bool splitLeaderboard )
@@ -399,7 +400,7 @@ namespace iRacingTVController
 
 					// get slot
 
-					var liveDataLeaderboardSlot = currentLiveDataLeaderboard.liveDataLeaderboardSlots[ normalizedCar.carIdx ];
+					LiveDataLeaderboardSlot liveDataLeaderboardSlot = currentLiveDataLeaderboard.liveDataLeaderboardSlots[ normalizedCar.carIdx ];
 
 					// skip pace car and spectators
 
@@ -477,6 +478,13 @@ namespace iRacingTVController
 						liveDataLeaderboardSlot.textLayer3 = GetTextContent( out liveDataLeaderboardSlot.textLayer3Color, "LeaderboardPositionTextLayer3", normalizedCar, currentLeaderboardClass );
 						liveDataLeaderboardSlot.textLayer4 = GetTextContent( out liveDataLeaderboardSlot.textLayer4Color, "LeaderboardPositionTextLayer4", normalizedCar, currentLeaderboardClass );
 
+						//any pens?
+						liveDataLeaderboardSlot.penaltyFlag = normalizedCar.sessionFlags.HasAnyFlag(SessionFlags.Black | SessionFlags.Crossed | SessionFlags.Disqualify);
+						liveDataLeaderboardSlot.slowDownFlag = normalizedCar.sessionFlags.HasAnyFlag(SessionFlags.Furled);
+						liveDataLeaderboardSlot.meatballFlag = normalizedCar.sessionFlags.HasAnyFlag(SessionFlags.Repair);
+						liveDataLeaderboardSlot.finished = normalizedCar.hasCrossedFinishLine;
+						
+						
 						// current target
 
 						if ( !IRSDK.normalizedSession.isInQualifyingSession && !normalizedCar.isOutOfCar )
@@ -489,6 +497,10 @@ namespace iRacingTVController
 						{
 							liveDataLeaderboardSlot.showCurrentTarget = false;
 						}
+						
+						//put pit / outlap
+						liveDataLeaderboardSlot.textLayer5 = GetTextContent(out liveDataLeaderboardSlot.textLayer4Color, "LeaderboardPositionTextLayer5", normalizedCar, currentLeaderboardClass);
+						
 
 						// preferred driver
 
@@ -1463,7 +1475,12 @@ namespace iRacingTVController
 					{
 						if (IRSDK.normalizedSession.isInQualifyingSession || IRSDK.normalizedSession.isInQualifyingSession)
 						{
-							if (!normalizedCar.hasCrossedStartLine)
+							if (normalizedCar.isOnPitRoad == true)
+							{
+								return "PIT LANE";
+							}
+							
+							if (normalizedCar.lastPitLap == normalizedCar.currentLap)
 							{
 								return "OUT LAP";
 							}
@@ -1805,11 +1822,7 @@ namespace iRacingTVController
 					
 					int carClassIndex = normalizedCar.leaderboardClassIndex;
 					var carClass = IRSDK.normalizedData.leaderboardClass[ carClassIndex ];
-
-					if (carClass.name == "")
-					{
-						return "Class";
-					}
+					
 					
 					return carClass.name;
 					break;
@@ -1896,6 +1909,31 @@ namespace iRacingTVController
 				
 				case SettingsText.Content.Driver_FinialGapAheadClass:
 					return normalizedCar.gapTimeFront.ToString();
+				
+				//Extra info decided for the driver. In quali this is OUTLAP / PIT. 
+				case SettingsText.Content.Driver_ExtraInfo:
+
+					if (normalizedCar == null)
+					{
+						return "";
+					}
+					
+					if (IRSDK.normalizedSession.isInQualifyingSession)
+					{
+						if (normalizedCar.isOnPitRoad || normalizedCar.isOutOfCar)
+						{
+							return "PIT";
+						}else if (normalizedCar.lastPitLap == normalizedCar.currentLap)
+						{
+							return "OUT LAP";
+						}
+
+						return "";
+
+					}
+					
+					break;
+					
 
 				case SettingsText.Content.Session_Name:
 				{
@@ -1946,7 +1984,7 @@ namespace iRacingTVController
 					return Settings.overlay.translationDictionary[ "VoiceOf" ].translation;
 			}
 
-			return "(error)";
+			return "";
 		}
 
 		public static Color GetTextColor( SettingsText settingsText, NormalizedCar? normalizedCar )

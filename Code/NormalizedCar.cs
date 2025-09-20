@@ -144,6 +144,8 @@ namespace iRacingTVController
 		public string license = string.Empty;
 		public string licenseColor = string.Empty;
 
+		public int lastPitLap = 0;
+
 		public bool memberProfileRetrieved = false;
 		public MemberProfile? memberProfile = null;
 
@@ -311,6 +313,8 @@ namespace iRacingTVController
 
 			currentLap = 0;
 			currentLapLastFrame = 0;
+			lastPitLap = 0;
+	
 
 			lapCompletedLastFrame = 0;
 
@@ -780,6 +784,11 @@ namespace iRacingTVController
 			if ( currentLapLastFrame == 0 )
 			{
 				currentLapLastFrame = currentLap;
+			}
+			
+			if (isOnPitRoad == true)
+			{
+				lastPitLap = currentLap;
 			}
 
 			currentLapTime = car.CarIdxEstTime;

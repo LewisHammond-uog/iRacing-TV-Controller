@@ -84,7 +84,8 @@ namespace iRacingTVController
 			ThisCar_LeaderboardClass = 101,
 			Driver_OverallQualityPosition_WithP = 102,
 			Driver_QualifyPosition_WithP_WithClass = 103,
-			Driver_FinialGapAheadClass
+			Driver_FinialGapAheadClass,
+			Driver_ExtraInfo
 		};
 
 		public FontIndex fontIndex = FontIndex.None;
