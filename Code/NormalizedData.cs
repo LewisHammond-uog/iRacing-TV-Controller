@@ -16,7 +16,7 @@ namespace iRacingTVController
 		public class LeaderboardClass
 		{
 			public int numDrivers = 0;
-			public int classID = -1;
+			public string classID = "";
 			public Color color = Color.white;
 			public string name = string.Empty;
 			public string shortName = string.Empty;
@@ -145,7 +145,7 @@ namespace iRacingTVController
 			for ( var classIndex = 0; classIndex < MaxNumClasses; classIndex++ )
 			{
 				leaderboardClass[ classIndex ].numDrivers = 0;
-				leaderboardClass[ classIndex ].classID = -1;
+				leaderboardClass[ classIndex ].classID = "";
 				leaderboardClass[ classIndex ].color = Color.white;
 				leaderboardClass[ classIndex ].name = string.Empty;
 				leaderboardClass[ classIndex ].shortName = string.Empty;

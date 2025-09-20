@@ -30,7 +30,7 @@ namespace iRacingTVController
 		public string carNumber = string.Empty;
 		public int carNumberRaw = 0;
 
-		public int classID = 0;
+		public string classID = "Main Class";
 		public Color classColor = Color.white;
 		public CustomClassSystem.CarClass? carClass = null;
 		public float carClassEstLapTime = float.MaxValue;
@@ -146,6 +146,7 @@ namespace iRacingTVController
 		public string licenseColor = string.Empty;
 
 		public int lastPitLap = 0;
+		public bool isOutLap => !IRSDK.normalizedSession.isInRaceSession && currentLap == lastPitLap;
 
 		// Sector timing arrays (real sectors from session split info)
 		public SectorTimingInfo[]? sectorTimes = null;
@@ -169,8 +170,8 @@ namespace iRacingTVController
 		public static float[]? sessionBestFakeSectorTimes = null;   // fake thirds
 
 		// Session bests (by classID)
-		public static Dictionary<int, float[]>? sessionClassBestSectorTimes = null;       // real sectors per class
-		public static Dictionary<int, float[]>? sessionClassBestFakeSectorTimes = null;   // fake thirds per class
+		public static Dictionary<string, float[]>? sessionClassBestSectorTimes = null;       // real sectors per class
+		public static Dictionary<string, float[]>? sessionClassBestFakeSectorTimes = null;   // fake thirds per class
 
 		// Current lap buffers (store completed sector times for the lap we’re on)
 		public float[]? currentLapSectorTimes = null;
@@ -201,7 +202,7 @@ namespace iRacingTVController
 			carNumber = string.Empty;
 			carNumberRaw = 0;
 
-			classID = 0;
+			classID = "";
 			classColor = Color.white;
 
 			includeInLeaderboard = false;
@@ -518,7 +519,7 @@ namespace iRacingTVController
 			carNumber = driver.CarNumber;
 			carNumberRaw = driver.CarNumberRaw;
 
-			classID = driver.CarClassID;
+			classID = CustomClassSystem.Instance.GetClassForCar(driver.CarNumber)?.ClassName;
 			classColor = new Color( driver.CarClassColor[ 2.. ] );
 			carClass = CustomClassSystem.Instance.GetClassForCar(driver.CarNumber);
 			carClassEstLapTime = driver.CarClassEstLapTime;
@@ -988,6 +989,11 @@ namespace iRacingTVController
 				return;
 			}
 
+			if (classID == null)
+			{
+				return;
+			}
+
 			// Initialize real sectors from session split info if needed
 			try
 			{
@@ -1017,7 +1023,7 @@ namespace iRacingTVController
 						}
 
 						// allocate session class bests
-						sessionClassBestSectorTimes ??= new Dictionary<int, float[]>();
+						sessionClassBestSectorTimes ??= new Dictionary<string, float[]>();
 						if ( !sessionClassBestSectorTimes.ContainsKey( classID ) || sessionClassBestSectorTimes[ classID ].Length != sectorTimes.Length )
 						{
 							sessionClassBestSectorTimes[ classID ] = new float[ sectorTimes.Length ];
@@ -1039,7 +1045,7 @@ namespace iRacingTVController
 					{
 						sessionBestSectorTimes = new float[ sectorTimes.Length ];
 					}
-					sessionClassBestSectorTimes ??= new Dictionary<int, float[]>();
+					sessionClassBestSectorTimes ??= new Dictionary<string, float[]>();
 					if ( !sessionClassBestSectorTimes.ContainsKey( classID ) || sessionClassBestSectorTimes[ classID ].Length != sectorTimes.Length )
 					{
 						sessionClassBestSectorTimes[ classID ] = new float[ sectorTimes.Length ];
@@ -1075,8 +1081,8 @@ namespace iRacingTVController
 			{
 				sessionBestFakeSectorTimes = new float[ 3 ];
 			}
-			sessionClassBestFakeSectorTimes ??= new Dictionary<int, float[]>();
-			if ( !sessionClassBestFakeSectorTimes.ContainsKey( classID ) || sessionClassBestFakeSectorTimes[ classID ].Length != 3 )
+			sessionClassBestFakeSectorTimes ??= new Dictionary<string, float[]>();
+			if (!sessionClassBestFakeSectorTimes.ContainsKey( classID ) || sessionClassBestFakeSectorTimes[ classID ].Length != 3 )
 			{
 				sessionClassBestFakeSectorTimes[ classID ] = new float[ 3 ];
 			}
@@ -1868,9 +1874,13 @@ namespace iRacingTVController
 						result = b.carClass.RelativeSpeed.CompareTo( a.carClass.RelativeSpeed );
 					}
 				}
-				else
+				else if(a.classID != null && b.classID != null)
 				{
 					result = a.classID.CompareTo( b.classID );
+				}
+				else
+				{
+					result = -1;
 				}
 			}
 			else if ( a.includeInLeaderboard )

@@ -12,12 +12,13 @@ namespace iRacingTVController;
 
 public class CustomClassSystem
 {
+	public static float rs = 0f;
 	public class CarClass
 	{
 		public string ClassName;
 		public List<string> CarNums = new();
 		public Unity.Color Colour;
-		public float RelativeSpeed;
+		public float RelativeSpeed = 0;
 	}
 
 	private HashSet<CarClass> allClasses;
@@ -26,12 +27,24 @@ public class CustomClassSystem
 		
 	private Dictionary<CarClass, List<string>> classLeaderboards;
 
-	public static CustomClassSystem Instance;
+	private static CustomClassSystem? _instance;
+	public static CustomClassSystem Instance
+	{
+		get
+		{
+			if (_instance == null)
+				_instance = new CustomClassSystem(Program.documentsFolder + "data/cars.csv",
+					Program.documentsFolder + "data/classes.csv");
+
+			return _instance;
+		}
+	}
+
+	private CarClass defaultClass;
 	
 	
 	public CustomClassSystem(string classCSV, string classToColourCSV)
 	{
-		Instance = this;
 		carsToClasses = new Dictionary<string, CarClass>();
 		allClasses =  new HashSet<CarClass>();
 		nameToClasses = new Dictionary<string, CarClass>(StringComparer.OrdinalIgnoreCase);
@@ -43,6 +56,14 @@ public class CustomClassSystem
 		{
 			classLeaderboards.Add(carclass, new List<string>(carclass.CarNums.Count));
 		}
+
+		defaultClass = new CarClass()
+		{
+			ClassName = "Default",
+			CarNums = new List<string>(),
+			Colour = Unity.Color.white,
+			RelativeSpeed = 0f,
+		};
 	}
 
 	public void Update(in List<NormalizedCar> sortedLeaderboardClass)
@@ -76,19 +97,14 @@ public class CustomClassSystem
 		return allClasses.Count;
 	}
 
-	public CarClass? GetClassForCar(string carNum)
-	{
-		if (!carsToClasses.ContainsKey(carNum))
-		{
-			return null;
-		}
-		
-		return carsToClasses[carNum];
-	}
-
-	public CarClass GetClassForCar(NormalizedCar car)
+	public CarClass? GetClassForCar(NormalizedCar car)
 	{
 		return GetClassForCar(car.carNumber);
+	}
+
+	public CarClass? GetClassForCar(string carNum)
+	{
+		return carsToClasses.GetValueOrDefault(carNum, defaultClass);
 	}
 	
 	public bool IsCarInClass(CarClass carClass, string carNum)
@@ -133,9 +149,31 @@ public class CustomClassSystem
 		return carClass.Colour;
 	}
 
+	public Unity.Color GetColourForClass(string className)
+	{
+		if (string.IsNullOrEmpty(className))
+		{
+			return Unity.Color.white;
+		}
+		
+		if (!nameToClasses.ContainsKey(className))
+		{
+			return Unity.Color.white;
+		}
+		
+		var carClass = nameToClasses[className];
+
+
+		return carClass.Colour;
+	}
+
 	public int GetPositionInClass(NormalizedCar car)
 	{
 		string carNum = car.carNumber;
+		if (!carsToClasses.ContainsKey(carNum))
+		{
+			return 1;
+		}
 		var carClass = carsToClasses[carNum];
 		var leaderboard = classLeaderboards[carClass];
 		return leaderboard.IndexOf(carNum) + 1;
@@ -162,17 +200,34 @@ public class CustomClassSystem
 		carsToClasses.Add(carNum, carClass);
 	}
 
-	private void CreateClass(string name, Unity.Color colour)
+	private void CreateClass(string name, Unity.Color colour, int relativeSpeed)
 	{
+		float rs = 0f;
+		if (name == "Pro")
+		{
+			rs = 1f;
+		}else if (name == "Pro-Am")
+		{
+			rs = 0.5f;
+		}else if (name == "Am")
+		{
+			rs = 0.1f;
+		}
+		
+		
+		
+		
 		var newClass = new CarClass()
 		{
 			ClassName = name,
 			Colour = colour,
-			CarNums = new List<string>()
+			CarNums = new List<string>(),
+			RelativeSpeed = rs
 		};
 		
 		allClasses.Add(newClass);
 		nameToClasses.Add(name, newClass);
+		
 	}
 
 	private void LoadClassesToColours(string classToColourCSV)
@@ -181,7 +236,7 @@ public class CustomClassSystem
 
 		foreach (var record in records)
 		{
-			CreateClass(record.ClassName, new Unity.Color(record.Hex));
+			CreateClass(record.ClassName, new Unity.Color(record.Hex),  (int)record.relativeSeepd);
 		}
 	}
 

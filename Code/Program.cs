@@ -40,6 +40,9 @@ namespace iRacingTVController
 				Directory.CreateDirectory( documentsFolder );
 			}
 
+			var ccs = CustomClassSystem.Instance;
+			Console.WriteLine($"CCS Init + {ccs.GetHashCode()}");
+
 			Directory.SetCurrentDirectory( documentsFolder );
 
 			LogFile.Initialize();
