@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 
 using Aydsko.iRacingData.Common;
 using Aydsko.iRacingData.Member;
@@ -146,6 +147,38 @@ namespace iRacingTVController
 
 		public int lastPitLap = 0;
 
+		// Sector timing arrays (real sectors from session split info)
+		public SectorTimingInfo[]? sectorTimes = null;
+		// 'Fake' sectors: thirds of a lap
+		public SectorTimingInfo[]? fakeSectorTimes = null;
+
+		// Current sector indices
+		public int currentSector = 0;
+		public int currentFakeSector = 0;
+
+		// Previous samples for interpolation
+		public float prevLapDistPctForSectors = 0;
+		public double prevSessionTimeForSectors = 0;
+
+		// Per-car bests
+		public float[]? bestSectorTimes = null;        // real sectors
+		public float[]? bestFakeSectorTimes = null;    // fake thirds
+
+		// Session bests (overall)
+		public static float[]? sessionBestSectorTimes = null;       // real sectors
+		public static float[]? sessionBestFakeSectorTimes = null;   // fake thirds
+
+		// Session bests (by classID)
+		public static Dictionary<int, float[]>? sessionClassBestSectorTimes = null;       // real sectors per class
+		public static Dictionary<int, float[]>? sessionClassBestFakeSectorTimes = null;   // fake thirds per class
+
+		// Current lap buffers (store completed sector times for the lap we’re on)
+		public float[]? currentLapSectorTimes = null;
+		public int currentLapNumberForSectorBuffer = 0;
+
+		public float[]? currentLapFakeSectorTimes = null;
+		public int currentLapNumberForFakeSectorBuffer = 0;
+
 		public bool memberProfileRetrieved = false;
 		public MemberProfile? memberProfile = null;
 
@@ -274,6 +307,23 @@ namespace iRacingTVController
 			license = string.Empty;
 			licenseColor = string.Empty;
 
+			// Reset sector timing and bests
+			sectorTimes = null;
+			fakeSectorTimes = null;
+			currentSector = 0;
+			currentFakeSector = 0;
+			prevLapDistPctForSectors = 0;
+			prevSessionTimeForSectors = 0;
+
+			bestSectorTimes = null;
+			bestFakeSectorTimes = null;
+			// sessionBest* and sessionClassBest* are static; leave as-is here
+
+			currentLapSectorTimes = null;
+			currentLapNumberForSectorBuffer = 0;
+			currentLapFakeSectorTimes = null;
+			currentLapNumberForFakeSectorBuffer = 0;
+
 			memberProfileRetrieved = false;
 			memberProfile = null;
 
@@ -315,6 +365,29 @@ namespace iRacingTVController
 			currentLapLastFrame = 0;
 			lastPitLap = 0;
 	
+			// Reset sector timing on session change
+			sectorTimes = null;
+			fakeSectorTimes = null;
+			currentSector = 0;
+			currentFakeSector = 0;
+			prevLapDistPctForSectors = Math.Max( 0, car.CarIdxLapDistPct );
+			prevSessionTimeForSectors = IRSDK.normalizedData.sessionTime;
+
+			// Per-car bests
+			bestSectorTimes = null;
+			bestFakeSectorTimes = null;
+
+			// Current-lap buffers
+			currentLapSectorTimes = null;
+			currentLapNumberForSectorBuffer = 0;
+			currentLapFakeSectorTimes = null;
+			currentLapNumberForFakeSectorBuffer = 0;
+
+			// Reset session bests (reallocated on demand)
+			sessionBestSectorTimes = null;
+			sessionBestFakeSectorTimes = null;
+			sessionClassBestSectorTimes = null;
+			sessionClassBestFakeSectorTimes = null;
 
 			lapCompletedLastFrame = 0;
 
@@ -891,6 +964,459 @@ namespace iRacingTVController
 
 			gear = car.CarIdxGear;
 			rpm = Math.Max( 0, car.CarIdxRPM );
+
+			// Update sector timings after updating lap distance and times
+			UpdateSectorTimes();
+		}
+
+		private static bool NearlyEqual( float a, float b, float eps = 0.0005f )
+		{
+			return Math.Abs( a - b ) <= eps;
+		}
+
+		public void UpdateSectorTimes()
+		{
+			// Require session and valid driver/car indexing
+			if ( IRSDK.session == null || !includeInLeaderboard )
+			{
+				return;
+			}
+
+			// Not applicable for pace car/spectators
+			if ( isPaceCar || isSpectator )
+			{
+				return;
+			}
+
+			// Initialize real sectors from session split info if needed
+			try
+			{
+				var splitInfo = IRSDK.session.SplitTimeInfo;
+				var sessionSectors = splitInfo?.Sectors;
+
+				if ( ( sectorTimes == null ) || ( sessionSectors == null ) || ( sectorTimes.Length != sessionSectors.Count ) )
+				{
+					if ( sessionSectors != null && sessionSectors.Count > 0 )
+					{
+						sectorTimes = sessionSectors
+							.OrderBy( s => s.SectorStartPct )
+							.Select( s => new SectorTimingInfo
+							{
+								Number = s.SectorNum,
+								StartPercentage = s.SectorStartPct,
+								EnterSessionTime = 0,
+								SectorTime = 0
+							} )
+							.ToArray();
+
+						// allocate per-car bests and session bests
+						bestSectorTimes = new float[ sectorTimes.Length ];
+						if ( ( sessionBestSectorTimes == null ) || ( sessionBestSectorTimes.Length != sectorTimes.Length ) )
+						{
+							sessionBestSectorTimes = new float[ sectorTimes.Length ];
+						}
+
+						// allocate session class bests
+						sessionClassBestSectorTimes ??= new Dictionary<int, float[]>();
+						if ( !sessionClassBestSectorTimes.ContainsKey( classID ) || sessionClassBestSectorTimes[ classID ].Length != sectorTimes.Length )
+						{
+							sessionClassBestSectorTimes[ classID ] = new float[ sectorTimes.Length ];
+						}
+
+						// allocate current lap buffers
+						currentLapSectorTimes = new float[ sectorTimes.Length ];
+						currentLapNumberForSectorBuffer = currentLap;
+					}
+				}
+				else
+				{
+					// ensure arrays exist if sectors already initialized
+					if ( ( bestSectorTimes == null ) || ( bestSectorTimes.Length != sectorTimes.Length ) )
+					{
+						bestSectorTimes = new float[ sectorTimes.Length ];
+					}
+					if ( ( sessionBestSectorTimes == null ) || ( sessionBestSectorTimes.Length != sectorTimes.Length ) )
+					{
+						sessionBestSectorTimes = new float[ sectorTimes.Length ];
+					}
+					sessionClassBestSectorTimes ??= new Dictionary<int, float[]>();
+					if ( !sessionClassBestSectorTimes.ContainsKey( classID ) || sessionClassBestSectorTimes[ classID ].Length != sectorTimes.Length )
+					{
+						sessionClassBestSectorTimes[ classID ] = new float[ sectorTimes.Length ];
+					}
+					if ( ( currentLapSectorTimes == null ) || ( currentLapSectorTimes.Length != sectorTimes.Length ) )
+					{
+						currentLapSectorTimes = new float[ sectorTimes.Length ];
+						currentLapNumberForSectorBuffer = currentLap;
+					}
+				}
+			}
+			catch
+			{
+				// if split info is unavailable, skip for now
+			}
+
+			// Initialize fake sectors (thirds) if needed
+			if ( fakeSectorTimes == null || fakeSectorTimes.Length != 3 )
+			{
+				fakeSectorTimes = new SectorTimingInfo[]
+				{
+					new SectorTimingInfo{ Number = 0, StartPercentage = 0.0f, EnterSessionTime = 0, SectorTime = 0 },
+					new SectorTimingInfo{ Number = 1, StartPercentage = 1.0f/3.0f, EnterSessionTime = 0, SectorTime = 0 },
+					new SectorTimingInfo{ Number = 2, StartPercentage = 2.0f/3.0f, EnterSessionTime = 0, SectorTime = 0 },
+				};
+			}
+			// ensure fake arrays
+			if ( ( bestFakeSectorTimes == null ) || ( bestFakeSectorTimes.Length != 3 ) )
+			{
+				bestFakeSectorTimes = new float[ 3 ];
+			}
+			if ( ( sessionBestFakeSectorTimes == null ) || ( sessionBestFakeSectorTimes.Length != 3 ) )
+			{
+				sessionBestFakeSectorTimes = new float[ 3 ];
+			}
+			sessionClassBestFakeSectorTimes ??= new Dictionary<int, float[]>();
+			if ( !sessionClassBestFakeSectorTimes.ContainsKey( classID ) || sessionClassBestFakeSectorTimes[ classID ].Length != 3 )
+			{
+				sessionClassBestFakeSectorTimes[ classID ] = new float[ 3 ];
+			}
+			if ( ( currentLapFakeSectorTimes == null ) || ( currentLapFakeSectorTimes.Length != 3 ) )
+			{
+				currentLapFakeSectorTimes = new float[ 3 ];
+				currentLapNumberForFakeSectorBuffer = currentLap;
+			}
+
+			var haveRealSectors = sectorTimes != null && sectorTimes.Length > 0;
+
+			// Current and previous samples
+			var p1 = lapDistPct;
+			var t1 = IRSDK.normalizedData.sessionTime;
+
+			// First-time initialization of previous samples
+			if ( prevSessionTimeForSectors == 0 && prevLapDistPctForSectors == 0 )
+			{
+				prevSessionTimeForSectors = t1;
+				prevLapDistPctForSectors = p1;
+				return;
+			}
+
+			// If out of car, do not process crossings
+			if ( isOutOfCar )
+			{
+				prevSessionTimeForSectors = t1;
+				prevLapDistPctForSectors = p1;
+				return;
+			}
+
+			var p0 = prevLapDistPctForSectors;
+			var t0 = prevSessionTimeForSectors;
+
+			// Detect lap wrap (from near 1.0 back to near 0.0)
+			if ( p0 - p1 > 0.5f )
+			{
+				currentSector = 0;
+				currentFakeSector = 0;
+
+				// We want interpolation to consider p0 from previous lap's domain
+				p0 -= 1.0f;
+
+				// New lap: clear current lap buffers
+				if ( currentLapSectorTimes != null )
+				{
+					Array.Clear( currentLapSectorTimes, 0, currentLapSectorTimes.Length );
+				}
+				currentLapNumberForSectorBuffer = currentLap;
+
+				if ( currentLapFakeSectorTimes != null )
+				{
+					Array.Clear( currentLapFakeSectorTimes, 0, currentLapFakeSectorTimes.Length );
+				}
+				currentLapNumberForFakeSectorBuffer = currentLap;
+			}
+
+			var dp = p1 - p0;
+			var dt = t1 - t0;
+
+			// Avoid division by zero
+			if ( Math.Abs( dp ) < 1e-6 )
+			{
+				prevSessionTimeForSectors = t1;
+				prevLapDistPctForSectors = p1;
+				return;
+			}
+
+			// Interpolate session time at a given sector start percentage
+			double CrossTime( float startPct )
+			{
+				var f = ( startPct - p0 ) / dp;
+				return t0 + f * dt;
+			}
+
+			// Real sectors: detect crossings and close previous sector
+			if ( haveRealSectors )
+			{
+				var sectorCount = sectorTimes!.Length;
+
+				foreach ( var s in sectorTimes )
+				{
+					if ( ( p1 > s.StartPercentage ) && ( p0 <= s.StartPercentage ) )
+					{
+						var crossTime = (float) CrossTime( s.StartPercentage );
+
+						// Finish previous sector
+						var prevNum = ( s.Number <= 0 ) ? sectorCount - 1 : s.Number - 1;
+						var prevSector = sectorTimes[ prevNum ];
+
+						if ( prevSector != null && prevSector.EnterSessionTime > 0 )
+						{
+							prevSector.SectorTime = crossTime - prevSector.EnterSessionTime;
+
+							// Update per-car best
+							if ( bestSectorTimes != null && prevNum >= 0 && prevNum < bestSectorTimes.Length )
+							{
+								if ( bestSectorTimes[ prevNum ] == 0 || ( prevSector.SectorTime > 0 && prevSector.SectorTime < bestSectorTimes[ prevNum ] ) )
+								{
+									bestSectorTimes[ prevNum ] = prevSector.SectorTime;
+								}
+							}
+
+							// Update session overall best
+							if ( sessionBestSectorTimes != null && prevNum >= 0 && prevNum < sessionBestSectorTimes.Length )
+							{
+								if ( sessionBestSectorTimes[ prevNum ] == 0 || ( prevSector.SectorTime > 0 && prevSector.SectorTime < sessionBestSectorTimes[ prevNum ] ) )
+								{
+									sessionBestSectorTimes[ prevNum ] = prevSector.SectorTime;
+								}
+							}
+
+							// Update session class best
+							if ( sessionClassBestSectorTimes != null && sessionClassBestSectorTimes.TryGetValue( classID, out var classBest ) )
+							{
+								if ( classBest.Length == sectorCount )
+								{
+									if ( classBest[ prevNum ] == 0 || ( prevSector.SectorTime > 0 && prevSector.SectorTime < classBest[ prevNum ] ) )
+									{
+										classBest[ prevNum ] = prevSector.SectorTime;
+									}
+								}
+							}
+
+							// Record into current lap buffer (only when finishing a sector that isn't the wrap to 0)
+							if ( s.Number != 0 && currentLapSectorTimes != null && prevNum >= 0 && prevNum < currentLapSectorTimes.Length )
+							{
+								// Ensure buffer corresponds to this lap
+								if ( currentLapNumberForSectorBuffer != currentLap )
+								{
+									Array.Clear( currentLapSectorTimes, 0, currentLapSectorTimes.Length );
+									currentLapNumberForSectorBuffer = currentLap;
+								}
+
+								currentLapSectorTimes[ prevNum ] = prevSector.SectorTime;
+							}
+						}
+
+						// Start next sector
+						s.EnterSessionTime = crossTime;
+						currentSector = s.Number;
+
+						// When entering sector 0, reset the lap buffer
+						if ( s.Number == 0 && currentLapSectorTimes != null )
+						{
+							Array.Clear( currentLapSectorTimes, 0, currentLapSectorTimes.Length );
+							currentLapNumberForSectorBuffer = currentLap;
+						}
+
+						break;
+					}
+				}
+			}
+
+			// Fake sectors (thirds)
+			{
+				var sectorCount = 3;
+
+				foreach ( var s in fakeSectorTimes! )
+				{
+					if ( ( p1 > s.StartPercentage ) && ( p0 <= s.StartPercentage ) )
+					{
+						var crossTime = (float) CrossTime( s.StartPercentage );
+
+						// Finish previous fake sector
+						var prevNum = ( s.Number <= 0 ) ? sectorCount - 1 : s.Number - 1;
+						var prevSector = fakeSectorTimes[ prevNum ];
+
+						if ( prevSector != null && prevSector.EnterSessionTime > 0 )
+						{
+							prevSector.SectorTime = crossTime - prevSector.EnterSessionTime;
+
+							// per-car best
+							if ( bestFakeSectorTimes != null && prevNum >= 0 && prevNum < bestFakeSectorTimes.Length )
+							{
+								if ( bestFakeSectorTimes[ prevNum ] == 0 || ( prevSector.SectorTime > 0 && prevSector.SectorTime < bestFakeSectorTimes[ prevNum ] ) )
+								{
+									bestFakeSectorTimes[ prevNum ] = prevSector.SectorTime;
+								}
+							}
+
+							// session overall best
+							if ( sessionBestFakeSectorTimes != null && prevNum >= 0 && prevNum < sessionBestFakeSectorTimes.Length )
+							{
+								if ( sessionBestFakeSectorTimes[ prevNum ] == 0 || ( prevSector.SectorTime > 0 && prevSector.SectorTime < sessionBestFakeSectorTimes[ prevNum ] ) )
+								{
+									sessionBestFakeSectorTimes[ prevNum ] = prevSector.SectorTime;
+								}
+							}
+
+							// session class best
+							if ( sessionClassBestFakeSectorTimes != null && sessionClassBestFakeSectorTimes.TryGetValue( classID, out var classBest ) )
+							{
+								if ( classBest.Length == sectorCount )
+								{
+									if ( classBest[ prevNum ] == 0 || ( prevSector.SectorTime > 0 && prevSector.SectorTime < classBest[ prevNum ] ) )
+									{
+										classBest[ prevNum ] = prevSector.SectorTime;
+									}
+								}
+							}
+
+							// current-lap fake buffer
+							if ( s.Number != 0 && currentLapFakeSectorTimes != null && prevNum >= 0 && prevNum < currentLapFakeSectorTimes.Length )
+							{
+								if ( currentLapNumberForFakeSectorBuffer != currentLap )
+								{
+									Array.Clear( currentLapFakeSectorTimes, 0, currentLapFakeSectorTimes.Length );
+									currentLapNumberForFakeSectorBuffer = currentLap;
+								}
+
+								currentLapFakeSectorTimes[ prevNum ] = prevSector.SectorTime;
+							}
+						}
+
+						// Start next fake sector
+						s.EnterSessionTime = crossTime;
+						currentFakeSector = s.Number;
+
+						if ( s.Number == 0 && currentLapFakeSectorTimes != null )
+						{
+							Array.Clear( currentLapFakeSectorTimes, 0, currentLapFakeSectorTimes.Length );
+							currentLapNumberForFakeSectorBuffer = currentLap;
+						}
+
+						break;
+					}
+				}
+			}
+
+			// Store previous samples for next frame
+			prevSessionTimeForSectors = t1;
+			prevLapDistPctForSectors = lapDistPct;
+		}
+
+		// Get per-sector status for current lap (real sectors by default; fake thirds if fake=true)
+		public List<SectorLapStatus> GetCurrentLapSectorStatuses( bool fake = false )
+		{
+			var list = new List<SectorLapStatus>();
+
+			if ( fake )
+			{
+				if ( currentLapFakeSectorTimes == null || fakeSectorTimes == null )
+				{
+					return list;
+				}
+
+				// Determine class best for this car’s class
+				float[]? classBest = null;
+				if ( sessionClassBestFakeSectorTimes != null )
+				{
+					sessionClassBestFakeSectorTimes.TryGetValue( classID, out classBest );
+				}
+
+				for ( int i = 0; i < currentLapFakeSectorTimes.Length; i++ )
+				{
+					var t = currentLapFakeSectorTimes[ i ];
+					SectorStatus status;
+
+					if ( t <= 0 )
+					{
+						status = SectorStatus.NotCompleted;
+					}
+					else if ( sessionBestFakeSectorTimes != null && i < sessionBestFakeSectorTimes.Length && sessionBestFakeSectorTimes[ i ] > 0 && NearlyEqual( t, sessionBestFakeSectorTimes[ i ] ) )
+					{
+						status = SectorStatus.SessionBestOverall;
+					}
+					else if ( classBest != null && i < classBest.Length && classBest[ i ] > 0 && NearlyEqual( t, classBest[ i ] ) )
+					{
+						status = SectorStatus.SessionBestInClass;
+					}
+					else if ( bestFakeSectorTimes != null && i < bestFakeSectorTimes.Length && bestFakeSectorTimes[ i ] > 0 && NearlyEqual( t, bestFakeSectorTimes[ i ] ) )
+					{
+						status = SectorStatus.PersonalBest;
+					}
+					else
+					{
+						status = SectorStatus.Regular;
+					}
+
+					list.Add( new SectorLapStatus
+					{
+						Number = fakeSectorTimes[ i ].Number,
+						Time = t,
+						Status = status
+					} );
+				}
+
+				return list;
+			}
+			else
+			{
+				if ( currentLapSectorTimes == null || sectorTimes == null )
+				{
+					return list;
+				}
+
+				// Determine class best for this car’s class
+				float[]? classBest = null;
+				if ( sessionClassBestSectorTimes != null )
+				{
+					sessionClassBestSectorTimes.TryGetValue( classID, out classBest );
+				}
+
+				for ( int i = 0; i < currentLapSectorTimes.Length; i++ )
+				{
+					var t = currentLapSectorTimes[ i ];
+					SectorStatus status;
+
+					if ( t <= 0 )
+					{
+						status = SectorStatus.NotCompleted;
+					}
+					else if ( sessionBestSectorTimes != null && i < sessionBestSectorTimes.Length && sessionBestSectorTimes[ i ] > 0 && NearlyEqual( t, sessionBestSectorTimes[ i ] ) )
+					{
+						status = SectorStatus.SessionBestOverall;
+					}
+					else if ( classBest != null && i < classBest.Length && classBest[ i ] > 0 && NearlyEqual( t, classBest[ i ] ) )
+					{
+						status = SectorStatus.SessionBestInClass;
+					}
+					else if ( bestSectorTimes != null && i < bestSectorTimes.Length && bestSectorTimes[ i ] > 0 && NearlyEqual( t, bestSectorTimes[ i ] ) )
+					{
+						status = SectorStatus.PersonalBest;
+					}
+					else
+					{
+						status = SectorStatus.Regular;
+					}
+
+					list.Add( new SectorLapStatus
+					{
+						Number = sectorTimes[ i ].Number,
+						Time = t,
+						Status = status
+					} );
+				}
+
+				return list;
+			}
 		}
 
 		public void GenerateDisplayedName( bool multipleDriversHaveTheSameName )

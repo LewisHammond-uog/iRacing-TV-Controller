@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 
@@ -13,6 +14,8 @@ namespace iRacingTVController
 	[Serializable]
 	public class LiveData
 	{
+		public const bool UseCustomClassSystem = true;
+		
 		public const int MaxNumDrivers = 64;
 		public const int MaxNumClasses = 8;
 		public const int MaxNumCustom = 6;
@@ -78,6 +81,8 @@ namespace iRacingTVController
 
 		[NonSerialized, XmlIgnore] public int introCarIdx = 0;
 
+		private CustomClassSystem classSystem;
+
 		static LiveData()
 		{
 			Instance = new LiveData();
@@ -113,6 +118,12 @@ namespace iRacingTVController
 			{
 				liveDataCustom[ i ] = new LiveDataCustom();
 			}
+
+			if (UseCustomClassSystem)
+			{
+				classSystem = new CustomClassSystem(Program.documentsFolder + "/data/cars.csv", Program.documentsFolder + "/data/classes.csv");
+			}
+
 		}
 
 		public void Update()
@@ -304,14 +315,33 @@ namespace iRacingTVController
 
 			var leaderboardOffset = Vector2.zero;
 
+#if USE_CUSTOM_CLASSES
+			if (UseCustomClassSystem)
+			{
+				classSystem.Update(IRSDK.normalizedData.leaderboardSortedNormalizedCars);
+			}
+#endif
+
+
+			
 			// go through each car class
 
+
+			int numClasses = 0;
+			if (UseCustomClassSystem)
+			{
+				numClasses = classSystem.GetClassCount();
+			}
+			else
+			{
+				numClasses = IRSDK.normalizedData.numLeaderboardClasses;
+			}
+			
+			
 			for ( var classIndex = 0; classIndex < IRSDK.normalizedData.numLeaderboardClasses; classIndex++ )
 			{
 				var currentLiveDataLeaderboard = liveDataLeaderboards[ classIndex ];
-
 				var currentLeaderboardClass = IRSDK.normalizedData.leaderboardClass[ classIndex ];
-
 				var currentClassID = currentLeaderboardClass.classID;
 
 				// leaderboard splits
@@ -323,7 +353,7 @@ namespace iRacingTVController
 				{
 					if ( bottomSplitSlotCount > 0 )
 					{
-						foreach ( var normalizedCar in IRSDK.normalizedData.leaderboardSortedNormalizedCars )
+						foreach ( var normalizedCar in IRSDK.normalizedData.leaderboardSortedNormalizedCars)
 						{
 							if ( !normalizedCar.includeInLeaderboard )
 							{
@@ -484,19 +514,6 @@ namespace iRacingTVController
 						liveDataLeaderboardSlot.meatballFlag = normalizedCar.sessionFlags.HasAnyFlag(SessionFlags.Repair);
 						liveDataLeaderboardSlot.finished = normalizedCar.hasCrossedFinishLine;
 						
-						
-						// current target
-
-						if ( !IRSDK.normalizedSession.isInQualifyingSession && !normalizedCar.isOutOfCar )
-						{
-							liveDataLeaderboardSlot.showCurrentTarget = ( normalizedCar.carIdx == IRSDK.normalizedData.camCarIdx );
-
-							liveDataLeaderboardSlot.currentTargetTextLayer1 = GetTextContent( out color, "LeaderboardPositionCurrentTargetTextLayer1", normalizedCar, currentLeaderboardClass );
-						}
-						else
-						{
-							liveDataLeaderboardSlot.showCurrentTarget = false;
-						}
 						
 						//put pit / outlap
 						liveDataLeaderboardSlot.textLayer5 = GetTextContent(out liveDataLeaderboardSlot.textLayer4Color, "LeaderboardPositionTextLayer5", normalizedCar, currentLeaderboardClass);
@@ -1324,6 +1341,25 @@ namespace iRacingTVController
 
 					return ( normalizedCar?.normalizedCarBehind?.displayedPosition >= 1 ) ? "P" + normalizedCar.normalizedCarBehind.displayedPosition.ToString() : "";
 
+				case SettingsText.Content.Driver_Sectors:
+
+					StringBuilder sectorTimes = new StringBuilder();;
+					List<SectorLapStatus> list = normalizedCar.GetCurrentLapSectorStatuses();
+					for (int index = 0; index < list.Count; index++)
+					{
+						SectorLapStatus? sector = list[index];
+						GetSectorStatusColour(sector, sectorTimes);
+						sectorTimes.Append(sector.Time.ToString("0.000</color>"));
+
+						if (index < list.Count - 1)
+						{
+							sectorTimes.Append(" | ");
+						}
+					}
+
+					return sectorTimes.ToString();
+					
+				
 				case SettingsText.Content.Driver_CarBehind_UserID:
 
 					return normalizedCar?.normalizedCarBehind?.userId.ToString() ?? "";
@@ -1675,7 +1711,7 @@ namespace iRacingTVController
 
 							normalizedCar.checkpointTime = 0;
 						}
-						else if ( normalizedCar.isOutOfCar )
+						else if ( normalizedCar.isOutOfCar && normalizedCar.outOfCarTimer > 5f)
 						{
 							text = Settings.overlay.translationDictionary[ "Out" ].translation;
 							color = Settings.overlay.telemetryOutColor;
@@ -1927,6 +1963,17 @@ namespace iRacingTVController
 						{
 							return "OUT LAP";
 						}
+						else
+						{
+							var sectors = normalizedCar.GetCurrentLapSectorStatuses();
+							StringBuilder sb = new StringBuilder();
+							foreach (var sector in sectors)
+							{
+								GetSectorStatusColorBlob(sector, sb);
+							}
+
+							return sb.ToString();
+						}
 
 						return "";
 
@@ -1985,6 +2032,37 @@ namespace iRacingTVController
 			}
 
 			return "";
+		}
+
+		private static void GetSectorStatusColorBlob(SectorLapStatus sector, StringBuilder sb)
+		{
+			GetSectorStatusColour(sector, sb);
+			sb.Append("I</color>");
+		}
+
+		private static void GetSectorStatusColour(SectorLapStatus sector, StringBuilder sb)
+		{
+			switch (sector.Status)
+			{
+				case SectorStatus.NotCompleted:
+					sb.Append("<color=grey>");
+					break;
+				case SectorStatus.Regular:
+					sb.Append("<color=white>");
+					break;
+				case SectorStatus.PersonalBest:
+					sb.Append("<color=green>");
+					break;
+				case SectorStatus.SessionBestInClass:
+					sb.Append("<color=purple>");
+					break;
+				case SectorStatus.SessionBestOverall:
+					const string pink = "#FF00CB";
+					sb.Append($"<color={pink}>");
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
 		}
 
 		public static Color GetTextColor( SettingsText settingsText, NormalizedCar? normalizedCar )

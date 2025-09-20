@@ -12,6 +12,15 @@
     <Version>$(VersionPrefix)</Version>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DefineConstants>TRACE;USE_CUSTOM_CLASSES;</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DefineConstants>TRACE;USE_CUSTOM_CLASSES;</DefineConstants>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="Assets\icon\iracing-tv.ico" />
   </ItemGroup>
