@@ -17,6 +17,7 @@ public class CustomClassSystem
 		public string ClassName;
 		public List<string> CarNums = new();
 		public Unity.Color Colour;
+		public float RelativeSpeed;
 	}
 
 	private HashSet<CarClass> allClasses;
@@ -24,10 +25,13 @@ public class CustomClassSystem
 	private Dictionary<string, CarClass> nameToClasses;
 		
 	private Dictionary<CarClass, List<string>> classLeaderboards;
+
+	public static CustomClassSystem Instance;
 	
 	
 	public CustomClassSystem(string classCSV, string classToColourCSV)
 	{
+		Instance = this;
 		carsToClasses = new Dictionary<string, CarClass>();
 		allClasses =  new HashSet<CarClass>();
 		nameToClasses = new Dictionary<string, CarClass>(StringComparer.OrdinalIgnoreCase);
@@ -51,6 +55,12 @@ public class CustomClassSystem
 			}
 			
 			string carNumber = car.carNumber;
+			if (!carsToClasses.ContainsKey(carNumber))
+			{
+				continue;
+			}
+			
+			
 			var carClass = carsToClasses[carNumber];
 			classLeaderboards[carClass].Add(carNumber);
 		}
@@ -66,9 +76,19 @@ public class CustomClassSystem
 		return allClasses.Count;
 	}
 
-	public CarClass GetClassForCar(string carNum)
+	public CarClass? GetClassForCar(string carNum)
 	{
+		if (!carsToClasses.ContainsKey(carNum))
+		{
+			return null;
+		}
+		
 		return carsToClasses[carNum];
+	}
+
+	public CarClass GetClassForCar(NormalizedCar car)
+	{
+		return GetClassForCar(car.carNumber);
 	}
 	
 	public bool IsCarInClass(CarClass carClass, string carNum)

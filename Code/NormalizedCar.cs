@@ -32,7 +32,7 @@ namespace iRacingTVController
 
 		public int classID = 0;
 		public Color classColor = Color.white;
-		public CarClass? carClass = null;
+		public CustomClassSystem.CarClass? carClass = null;
 		public float carClassEstLapTime = float.MaxValue;
 
 		public bool includeInLeaderboard = false;
@@ -520,7 +520,7 @@ namespace iRacingTVController
 
 			classID = driver.CarClassID;
 			classColor = new Color( driver.CarClassColor[ 2.. ] );
-			carClass = DataApi.GetCarClass( classID );
+			carClass = CustomClassSystem.Instance.GetClassForCar(driver.CarNumber);
 			carClassEstLapTime = driver.CarClassEstLapTime;
 
 			iRating = driver.IRating;

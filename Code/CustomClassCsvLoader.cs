@@ -15,6 +15,7 @@ internal static class CustomClassCsvLoader
 	{
 		[Name("ClassName")] public string ClassName { get; set; }
 		[Name("Colour")] public string Hex { get; set; }
+		[Name("RealtiveSpeed")] public float RelativeSpeed { get; set; }
 	}
 
 	private sealed class CarNumToClassCsv
@@ -24,7 +25,7 @@ internal static class CustomClassCsvLoader
 		[Name("Class Name")] public string ClassName { get; set; }
 	}
 
-	public static List<(string ClassName, string Hex)> LoadClassesToColours(string path)
+	public static List<(string ClassName, string Hex, float RelativeSpeed)> LoadClassesToColours(string path)
 	{
 		var config = new CsvConfiguration(CultureInfo.InvariantCulture)
 		{
@@ -34,7 +35,7 @@ internal static class CustomClassCsvLoader
 		using var reader = new StreamReader(path);
 		using var csv = new CsvReader(reader, config);
 		return csv.GetRecords<ClassToColourCsv>()
-		          .Select(r => (r.ClassName, r.Hex))
+		          .Select(r => (r.ClassName, r.Hex, r.RelativeSpeed))
 		          .ToList();
 	}
 

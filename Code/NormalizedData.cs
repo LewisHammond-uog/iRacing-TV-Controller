@@ -617,8 +617,8 @@ namespace iRacingTVController
 				leaderboardClass[ 0 ].numDrivers = 0;
 				leaderboardClass[ 0 ].classID = classLeader.classID;
 				leaderboardClass[ 0 ].color = classLeader.classColor;
-				leaderboardClass[ 0 ].name = classLeader.carClass?.Name ?? string.Empty;
-				leaderboardClass[ 0 ].shortName = classLeader.carClass?.ShortName ?? string.Empty;
+				leaderboardClass[ 0 ].name = classLeader.carClass?.ClassName ?? string.Empty;
+				leaderboardClass[ 0 ].shortName = classLeader.carClass?.ClassName ?? string.Empty;
 
 				leaderboardClass[ 0 ].name = LiveData.ReplaceString( leaderboardClass[ 0 ].name );
 				leaderboardClass[ 0 ].shortName = LiveData.ReplaceString( leaderboardClass[ 0 ].shortName );
@@ -643,8 +643,8 @@ namespace iRacingTVController
 							leaderboardClass[ numLeaderboardClasses ].numDrivers = 0;
 							leaderboardClass[ numLeaderboardClasses ].classID = classLeader.classID;
 							leaderboardClass[ numLeaderboardClasses ].color = classLeader.classColor;
-							leaderboardClass[ numLeaderboardClasses ].name = classLeader.carClass?.Name ?? string.Empty;
-							leaderboardClass[ numLeaderboardClasses ].shortName = classLeader.carClass?.ShortName ?? string.Empty;
+							leaderboardClass[ numLeaderboardClasses ].name = classLeader.carClass?.ClassName ?? string.Empty;
+							leaderboardClass[ numLeaderboardClasses ].shortName = classLeader.carClass?.ClassName ?? string.Empty;
 
 							leaderboardClass[ numLeaderboardClasses ].name = LiveData.ReplaceString( leaderboardClass[ numLeaderboardClasses ].name );
 							leaderboardClass[ numLeaderboardClasses ].shortName = LiveData.ReplaceString( leaderboardClass[ numLeaderboardClasses ].shortName );

@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
@@ -303,9 +304,10 @@ namespace iRacingTVController
 
 			// allocate leaderboards
 
-			if ( ( liveDataLeaderboards == null ) || ( liveDataLeaderboards.Length != IRSDK.normalizedData.numLeaderboardClasses ) )
+			int classCount = classSystem.GetClassCount();
+			if ( ( liveDataLeaderboards == null ) || ( liveDataLeaderboards.Length != classCount ) )
 			{
-				liveDataLeaderboards = new LiveDataLeaderboard[ IRSDK.normalizedData.numLeaderboardClasses ];
+				liveDataLeaderboards = new LiveDataLeaderboard[ classCount ];
 
 				for ( var leaderboardIndex = 0; leaderboardIndex < liveDataLeaderboards.Length; leaderboardIndex++ )
 				{
@@ -321,28 +323,12 @@ namespace iRacingTVController
 				classSystem.Update(IRSDK.normalizedData.leaderboardSortedNormalizedCars);
 			}
 #endif
-
-
 			
-			// go through each car class
-
-
-			int numClasses = 0;
-			if (UseCustomClassSystem)
-			{
-				numClasses = classSystem.GetClassCount();
-			}
-			else
-			{
-				numClasses = IRSDK.normalizedData.numLeaderboardClasses;
-			}
-			
-			
-			for ( var classIndex = 0; classIndex < IRSDK.normalizedData.numLeaderboardClasses; classIndex++ )
+			for ( var classIndex = 0; classIndex < classCount; classIndex++ )
 			{
 				var currentLiveDataLeaderboard = liveDataLeaderboards[ classIndex ];
-				var currentLeaderboardClass = IRSDK.normalizedData.leaderboardClass[ classIndex ];
-				var currentClassID = currentLeaderboardClass.classID;
+				var currentLeaderboardClass = classSystem.GetClasses().ToList()[classIndex];
+				var currentClassID = currentLeaderboardClass.ClassName;
 
 				// leaderboard splits
 
@@ -360,7 +346,8 @@ namespace iRacingTVController
 								break;
 							}
 
-							if ( !Settings.overlay.leaderboardSeparateBoards || ( normalizedCar.classID == currentClassID ) )
+							var currentCarClassID = classSystem.GetClassForCar(normalizedCar).ClassName;
+							if ( !Settings.overlay.leaderboardSeparateBoards || ( currentCarClassID == currentClassID ) )
 							{
 								if ( normalizedCar.carIdx == IRSDK.normalizedData.camCarIdx )
 								{
@@ -371,9 +358,9 @@ namespace iRacingTVController
 											bottomSplitLastSlotIndex += bottomSplitSlotCount;
 										}
 
-										if ( bottomSplitLastSlotIndex > currentLeaderboardClass.numDrivers )
+										if ( bottomSplitLastSlotIndex > currentLeaderboardClass.CarNums.Count )
 										{
-											bottomSplitLastSlotIndex = currentLeaderboardClass.numDrivers;
+											bottomSplitLastSlotIndex = currentLeaderboardClass.CarNums.Count;
 										}
 
 										break;
@@ -400,7 +387,7 @@ namespace iRacingTVController
 				Color color;
 
 				currentLiveDataLeaderboard.show = false;
-				currentLiveDataLeaderboard.classColor = currentLeaderboardClass.color;
+				currentLiveDataLeaderboard.classColor = currentLeaderboardClass.Colour;
 				currentLiveDataLeaderboard.textLayer1 = GetTextContent( out color, "LeaderboardTextLayer1", null, currentLeaderboardClass );
 				currentLiveDataLeaderboard.textLayer2 = GetTextContent( out color, "LeaderboardTextLayer2", null, currentLeaderboardClass );
 
@@ -422,8 +409,8 @@ namespace iRacingTVController
 				foreach ( var normalizedCar in IRSDK.normalizedData.leaderboardSortedNormalizedCars )
 				{
 					// skip cars with wrong car class
-
-					if ( Settings.overlay.leaderboardSeparateBoards && ( normalizedCar.classID != currentClassID ) )
+					var thisCarClassId = classSystem.GetClassForCar(normalizedCar)?.ClassName;
+					if ( Settings.overlay.leaderboardSeparateBoards && ( thisCarClassId != currentClassID ) )
 					{
 						continue;
 					}
@@ -566,7 +553,7 @@ namespace iRacingTVController
 
 			raceResultPageCount = 0;
 
-			for ( var i = 0; i < IRSDK.normalizedData.numLeaderboardClasses; i++ )
+			for ( var i = 0; i < classSystem.GetClassCount(); i++ )
 			{
 				raceResultPageCount += 1 + ( ( IRSDK.normalizedData.leaderboardClass[ i ].numDrivers - 1 ) / Settings.overlay.raceResultSlotCount );
 			}
@@ -629,11 +616,14 @@ namespace iRacingTVController
 			var slotIndex = 0;
 			var pageIndex = 0;
 
-			for ( var i = 0; i < IRSDK.normalizedData.numLeaderboardClasses; i++ )
+			int numClasses = classSystem.GetClassCount();
+			for ( var i = 0; i < numClasses; i++ )
 			{
 				slotIndex = 0;
 
-				var pagesThisClass = 1 + ( ( IRSDK.normalizedData.leaderboardClass[ i ].numDrivers - 1 ) / Settings.overlay.raceResultSlotCount );
+				int driversInClass = classSystem.GetClasses().ToList()[i].CarNums.Count;
+
+				var pagesThisClass = 1 + ( ( driversInClass - 1 ) / Settings.overlay.raceResultSlotCount );
 
 				for ( var j = 0; j < pagesThisClass; j++ )
 				{
@@ -650,12 +640,14 @@ namespace iRacingTVController
 
 			Color color;
 
-			var raceResultClass = IRSDK.normalizedData.leaderboardClass[ pageClassIndex[ raceResultCurrentPage ] ];
+			var a = pageClassIndex[raceResultCurrentPage];
+
+			var raceResultClass = classSystem.GetClasses().ToList()[a];
 
 			liveDataRaceResult.show = true;
 
 			liveDataRaceResult.backgroundSize = Settings.overlay.raceResultSlotSpacing * Settings.overlay.raceResultSlotCount;
-			liveDataRaceResult.classColor = raceResultClass.color;
+			liveDataRaceResult.classColor = raceResultClass.Colour;
 			liveDataRaceResult.textLayer1 = GetTextContent( out color, "RaceResultTextLayer1", null, raceResultClass );
 			liveDataRaceResult.textLayer2 = GetTextContent( out color, "RaceResultTextLayer2", null, raceResultClass );
 
@@ -672,7 +664,7 @@ namespace iRacingTVController
 
 			slotIndex = 0;
 
-			var numSlots = Math.Min( Settings.overlay.raceResultSlotCount, ( raceResultClass.numDrivers - pageSlotIndex[ raceResultCurrentPage ] ) );
+			var numSlots = Math.Min( Settings.overlay.raceResultSlotCount, ( raceResultClass.CarNums.Count - pageSlotIndex[ raceResultCurrentPage ] ) );
 
 			foreach ( var normalizedCar in IRSDK.normalizedData.leaderboardSortedNormalizedCars )
 			{
@@ -681,7 +673,8 @@ namespace iRacingTVController
 					continue;
 				}
 
-				if ( normalizedCar.classID != raceResultClass.classID )
+				string currentClassID = classSystem.GetClassForCar(normalizedCar).ClassName;
+				if ( currentClassID != raceResultClass.ClassName )
 				{
 					continue;
 				}
@@ -1279,7 +1272,7 @@ namespace iRacingTVController
 			}
 		}
 
-		public string GetTextContent( out Color color, string key, NormalizedCar? normalizedCar = null, NormalizedData.LeaderboardClass? leaderboardClass = null )
+		public string GetTextContent( out Color color, string key, NormalizedCar? normalizedCar = null, CustomClassSystem.CarClass? leaderboardClass = null )
 		{
 			var settingsText = Settings.overlay.textSettingsDataDictionary[ key ];
 
@@ -1841,12 +1834,12 @@ namespace iRacingTVController
 
 				case SettingsText.Content.Leaderboard_ClassName:
 				{
-					return leaderboardClass?.name ?? "(error)";
+					return "All Classes";
 				}
 
 				case SettingsText.Content.Leaderboard_ClassNameShort:
 				{
-					return leaderboardClass?.shortName ?? "(error)";
+					return "All Classes";
 				}
 
 				case SettingsText.Content.ThisCar_LeaderboardClass:
@@ -1855,12 +1848,15 @@ namespace iRacingTVController
 					{
 						return "";
 					}
+
+					var carClass = classSystem.GetClassForCar(normalizedCar);
+
+					if (carClass == null)
+					{
+						return "";
+					}
 					
-					int carClassIndex = normalizedCar.leaderboardClassIndex;
-					var carClass = IRSDK.normalizedData.leaderboardClass[ carClassIndex ];
-					
-					
-					return carClass.name;
+					return carClass.ClassName;
 					break;
 				}
 
