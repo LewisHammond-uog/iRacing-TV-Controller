@@ -617,6 +617,13 @@ namespace iRacingTVController
 			ControlPanel_C5_Button.IsChecked = customLayerOn[ 4 ] = Settings.overlay.imageSettingsDataDictionary[ "Custom5Layer1" ].imageType != SettingsImage.ImageType.None;
 			ControlPanel_C6_Button.IsChecked = customLayerOn[ 5 ] = Settings.overlay.imageSettingsDataDictionary[ "Custom6Layer1" ].imageType != SettingsImage.ImageType.None;
 
+			// update standings mode label
+			ControlPanel_Standings_Mode.Content = Settings.overlay.leaderboardSeparateBoards ? "Class" : "Full";
+
+			// update gap/interval toggle
+			ControlPanel_Standings_Timing.Content = Settings.overlay.telemetryIsBetweenCars ? "Interval" : "Gap";
+			ControlPanel_Standings_Timing.IsEnabled = !Settings.overlay.leaderboardSeparateBoards;
+
 			// director
 
 			DirectorList.Items.Clear();
@@ -1433,6 +1440,39 @@ namespace iRacingTVController
 			{
 				LiveData.Instance.raceResultCurrentPage++;
 			}
+		}
+
+		private void ControlPanel_Standings_Mode_Button_Click( object sender, EventArgs e )
+		{
+			// Toggle Separate Boards (Full vs Class)
+			var current = Settings.overlay.leaderboardSeparateBoards;
+
+			// Ensure we modify the active/local overlay and mark it overridden so the change sticks
+			Settings.overlayLocal.leaderboardSeparateBoards_Overridden = true;
+			Settings.overlayLocal.leaderboardSeparateBoards = !current;
+
+			// Persist and notify
+			Settings.saveOverlayToFileQueued = true;
+			IPC.readyToSendSettings = true;
+
+			// Refresh UI to reflect the new mode immediately
+			Update();
+		}
+
+		private void ControlPanel_Standings_Timing_Button_Click( object sender, EventArgs e )
+		{
+			// Toggle Gap vs Interval (to leader vs to car in front)
+			var current = Settings.overlay.telemetryIsBetweenCars;
+
+			Settings.overlayLocal.telemetryIsBetweenCars_Overridden = true;
+			Settings.overlayLocal.telemetryIsBetweenCars = !current;
+
+			// Persist and notify
+			Settings.saveOverlayToFileQueued = true;
+			IPC.readyToSendSettings = true;
+
+			// Refresh UI to reflect the new timing mode immediately
+			Update();
 		}
 
 		private void ControlPanel_CameraControl_Enable_Button_Click( object sender, RoutedEventArgs e )

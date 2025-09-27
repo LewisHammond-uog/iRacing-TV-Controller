@@ -83,10 +83,16 @@ namespace iRacingTVController
 			//My CustomOnes
 			ThisCar_LeaderboardClass = 101,
 			Driver_OverallQualityPosition_WithP = 102,
-			Driver_QualifyPosition_WithP_WithClass = 103,
-			Driver_FinialGapAheadClass,
+			Driver_QualifyPosition_Class = 103,
+			FinishTime_Classsed,
 			Driver_ExtraInfo,
-			Driver_Sectors
+			Driver_Sectors,
+			Track_Name,
+			Track_CityCounty,
+			Track_ExtraInfo,
+			Driver_Position_FinalResults,
+			RacePoints,
+			RaceBounusPoints
 		};
 
 		public FontIndex fontIndex = FontIndex.None;

@@ -519,10 +519,13 @@ namespace iRacingTVController
 			carNumber = driver.CarNumber;
 			carNumberRaw = driver.CarNumberRaw;
 
-			classID = CustomClassSystem.Instance.GetClassForCar(driver.CarNumber)?.ClassName;
-			classColor = new Color( driver.CarClassColor[ 2.. ] );
-			carClass = CustomClassSystem.Instance.GetClassForCar(driver.CarNumber);
-			carClassEstLapTime = driver.CarClassEstLapTime;
+			CustomClassSystem.CarClass? classForCar = CustomClassSystem.Instance.GetClassForCar(driver.CarNumber);
+			if(classForCar != null){
+				classID = classForCar?.ClassName;
+				classColor = classForCar.Colour;
+				carClass = classForCar;
+				carClassEstLapTime = driver.CarClassEstLapTime;
+			}
 
 			iRating = driver.IRating;
 			license = driver.LicString;

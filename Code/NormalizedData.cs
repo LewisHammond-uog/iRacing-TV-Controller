@@ -876,5 +876,20 @@ namespace iRacingTVController
 
 			return null;
 		}
+
+		// Returns cars in overall qualifying order (ascending by position).
+		// If includeNonQualifiers is true, cars without a valid qualifying position are appended at the end.
+		public List<NormalizedCar> GetCarsInQualifyingOverallOrder( bool includeNonQualifiers = false )
+		{
+			// qualifyingPosition defaults to MaxNumCars + 1 for cars without a set position
+			var result = normalizedCars
+				.Where( c => c.includeInLeaderboard )
+				.Where( c => includeNonQualifiers || ( c.qualifyingPosition > 0 && c.qualifyingPosition <= MaxNumCars ) )
+				.OrderBy( c => ( c.qualifyingPosition > 0 && c.qualifyingPosition <= MaxNumCars ) ? c.qualifyingPosition : int.MaxValue )
+				.ThenBy( c => c.carIdx ) // stable tie-breaker
+				.ToList();
+
+			return result;
+		}
 	}
 }

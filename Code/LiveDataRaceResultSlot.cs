@@ -25,5 +25,11 @@ namespace iRacingTVController
 
 		[JsonInclude] public string textLayer4 = string.Empty;
 		public Color textLayer4Color = Color.white;
+		
+		[JsonInclude] public string textLayer5 = string.Empty;
+		public Color textLayer5Color = Color.white;
+		
+		[JsonInclude] public string textLayer6 = string.Empty;
+		public Color textLayer6Color = Color.white;
 	}
 }

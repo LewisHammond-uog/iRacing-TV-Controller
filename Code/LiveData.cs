@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Xml.Serialization;
-
+using System.Globalization;
+using System.Linq;
+using Aydsko.iRacingData.Leagues;
 using irsdkSharp.Serialization.Enums.Fastest;
-
+using irsdkSharp.Serialization.Models.Session.SessionInfo;
 using static iRacingTVController.Unity;
 
 namespace iRacingTVController
@@ -48,6 +50,7 @@ namespace iRacingTVController
 
 		public string seriesLogoTextureUrl = string.Empty;
 		public string trackLogoTextureUrl = string.Empty;
+		public string trackTextureUrl = string.Empty;
 
 		[NonSerialized, XmlIgnore] public int[] lastFrameBottomSplitFirstPosition = new int[ MaxNumClasses ];
 
@@ -181,6 +184,7 @@ namespace iRacingTVController
 
 			seriesLogoTextureUrl = IRSDK.normalizedSession.seriesLogoTextureUrl;
 			trackLogoTextureUrl = IRSDK.normalizedSession.trackLogoTextureUrl;
+			trackTextureUrl = IRSDK.normalizedSession.trackMapTextureUrl;
 
 			IPC.readyToSendLiveData = true;
 		}
@@ -297,6 +301,11 @@ namespace iRacingTVController
 
 		public void UpdateLeaderboard( ref LiveDataLeaderboard[]? liveDataLeaderboards, bool splitLeaderboard )
 		{
+			//Make slot count be total, regarless of how many classes
+			int slotCount = (int)Math.Floor((double) Settings.overlay.leaderboardSlotCount /
+			                            (double) IRSDK.normalizedData.numLeaderboardClasses);
+			
+			
 			// save setting
 
 			this.splitLeaderboard = splitLeaderboard;
@@ -346,8 +355,8 @@ namespace iRacingTVController
 
 				// leaderboard splits
 
-				var bottomSplitSlotCount = Settings.overlay.leaderboardSlotCount / 2;
-				var bottomSplitLastSlotIndex = Settings.overlay.leaderboardSlotCount;
+				var bottomSplitSlotCount = slotCount / 2;
+				var bottomSplitLastSlotIndex = slotCount;
 
 				if ( !IRSDK.normalizedSession.isInQualifyingSession )
 				{
@@ -383,9 +392,9 @@ namespace iRacingTVController
 						}
 					}
 				}
-
+				
 				var topSplitFirstSlotIndex = 1;
-				var topSplitLastSlotIndex = Settings.overlay.leaderboardSlotCount - bottomSplitSlotCount;
+				var topSplitLastSlotIndex = slotCount - bottomSplitSlotCount;
 				var bottomSplitFirstSlotIndex = bottomSplitLastSlotIndex - bottomSplitSlotCount + 1;
 
 				if ( !splitLeaderboard )
@@ -449,6 +458,9 @@ namespace iRacingTVController
 
 						liveDataLeaderboardSlot.show = ( ( ( normalizedCar.displayedPosition >= topSplitFirstSlotIndex ) && ( normalizedCar.displayedPosition <= topSplitLastSlotIndex ) ) || ( ( normalizedCar.displayedPosition >= bottomSplitFirstSlotIndex ) && ( normalizedCar.displayedPosition <= bottomSplitLastSlotIndex ) ) );
 
+						//Set Red
+						
+						
 						// hide cars that have not qualified yet (only during qualifying)
 
 						if ( IRSDK.normalizedSession.isInQualifyingSession )
@@ -502,12 +514,20 @@ namespace iRacingTVController
 						}
 
 						//
+						
 
 						liveDataLeaderboardSlot.textLayer1 = GetTextContent( out liveDataLeaderboardSlot.textLayer1Color, "LeaderboardPositionTextLayer1", normalizedCar, currentLeaderboardClass );
 						liveDataLeaderboardSlot.textLayer2 = GetTextContent( out liveDataLeaderboardSlot.textLayer2Color, "LeaderboardPositionTextLayer2", normalizedCar, currentLeaderboardClass );
 						liveDataLeaderboardSlot.textLayer3 = GetTextContent( out liveDataLeaderboardSlot.textLayer3Color, "LeaderboardPositionTextLayer3", normalizedCar, currentLeaderboardClass );
 						liveDataLeaderboardSlot.textLayer4 = GetTextContent( out liveDataLeaderboardSlot.textLayer4Color, "LeaderboardPositionTextLayer4", normalizedCar, currentLeaderboardClass );
 
+						if (normalizedCar.carIdx == IRSDK.normalizedData.camCarIdx)
+						{
+							liveDataLeaderboardSlot.textLayer1Color = Color.red;
+						}
+						
+						
+						
 						//any pens?
 						liveDataLeaderboardSlot.penaltyFlag = normalizedCar.sessionFlags.HasAnyFlag(SessionFlags.Black | SessionFlags.Crossed | SessionFlags.Disqualify);
 						liveDataLeaderboardSlot.slowDownFlag = normalizedCar.sessionFlags.HasAnyFlag(SessionFlags.Furled);
@@ -539,7 +559,7 @@ namespace iRacingTVController
 					// leaderboard offset and background and splitter
 
 					currentLiveDataLeaderboard.offset = new Vector2( leaderboardOffset.x, leaderboardOffset.y );
-					currentLiveDataLeaderboard.backgroundSize = Settings.overlay.leaderboardSlotSpacing * Math.Min( carsShown, Settings.overlay.leaderboardSlotCount );
+					currentLiveDataLeaderboard.backgroundSize = Settings.overlay.leaderboardSlotSpacing * Math.Min( carsShown, slotCount );
 					currentLiveDataLeaderboard.showSplitter = ( ( topSplitLastSlotIndex + 1 ) != bottomSplitFirstSlotIndex );
 					currentLiveDataLeaderboard.splitterPosition = Settings.overlay.leaderboardFirstSlotPosition + Settings.overlay.leaderboardSlotSpacing * topSplitLastSlotIndex;
 
@@ -674,8 +694,10 @@ namespace iRacingTVController
 
 			var numSlots = Math.Min( Settings.overlay.raceResultSlotCount, ( raceResultClass.numDrivers - pageSlotIndex[ raceResultCurrentPage ] ) );
 
-			foreach ( var normalizedCar in IRSDK.normalizedData.leaderboardSortedNormalizedCars )
+			foreach ( var posCar in IRSDK.session.SessionInfo.Sessions[IRSDK.normalizedSession.sessionNumber].ResultsPositions )
 			{
+				var normalizedCar = IRSDK.normalizedData.normalizedCars.First(nc => nc.carIdx == posCar.CarIdx);
+				
 				if ( !normalizedCar.includeInLeaderboard )
 				{
 					continue;
@@ -692,12 +714,14 @@ namespace iRacingTVController
 
 					liveDataRaceResultSlot.show = true;
 
-					liveDataRaceResultSlot.showPreferredCar = normalizedCar.isPreferredCar;
+					liveDataRaceResultSlot.showPreferredCar = false;
 					liveDataRaceResultSlot.offset = new Vector2( Settings.overlay.raceResultSlotSpacing.x, -Settings.overlay.raceResultSlotSpacing.y ) * ( slotIndex - pageSlotIndex[ raceResultCurrentPage ] ) + new Vector2( Settings.overlay.raceResultFirstSlotPosition.x, -Settings.overlay.raceResultFirstSlotPosition.y );
 					liveDataRaceResultSlot.textLayer1 = GetTextContent( out liveDataRaceResultSlot.textLayer1Color, "RaceResultPositionTextLayer1", normalizedCar, raceResultClass );
 					liveDataRaceResultSlot.textLayer2 = GetTextContent( out liveDataRaceResultSlot.textLayer2Color, "RaceResultPositionTextLayer2", normalizedCar, raceResultClass );
 					liveDataRaceResultSlot.textLayer3 = GetTextContent( out liveDataRaceResultSlot.textLayer3Color, "RaceResultPositionTextLayer3", normalizedCar, raceResultClass );
 					liveDataRaceResultSlot.textLayer4 = GetTextContent( out liveDataRaceResultSlot.textLayer4Color, "RaceResultPositionTextLayer4", normalizedCar, raceResultClass );
+					liveDataRaceResultSlot.textLayer5 = GetTextContent( out liveDataRaceResultSlot.textLayer5Color, "RaceResultPositionTextLayer5", normalizedCar, raceResultClass );
+					liveDataRaceResultSlot.textLayer6 = GetTextContent( out liveDataRaceResultSlot.textLayer6Color, "RaceResultPositionTextLayer6", normalizedCar, raceResultClass );
 
 					numSlots--;
 
@@ -1282,6 +1306,9 @@ namespace iRacingTVController
 		public string GetTextContent( out Color color, string key, NormalizedCar? normalizedCar = null, NormalizedData.LeaderboardClass? leaderboardClass = null )
 		{
 			var settingsText = Settings.overlay.textSettingsDataDictionary[ key ];
+			
+			var session = IRSDK.normalizedSession.sessionNumber;
+			var results = CustomClassSystem.Instance.Results;
 
 			color = GetTextColor( settingsText, normalizedCar );
 
@@ -1356,9 +1383,42 @@ namespace iRacingTVController
 							sectorTimes.Append(" | ");
 						}
 					}
+					
+					
 
 					return sectorTimes.ToString();
+				
+				case SettingsText.Content.Track_Name:
+
+					return IRSDK.session?.WeekendInfo.TrackDisplayShortName + " - " + IRSDK.session?.WeekendInfo.TrackConfigName;
+				
+				case SettingsText.Content.Track_CityCounty:
+
+					return IRSDK.session?.WeekendInfo.TrackCity + ", " +  IRSDK.session?.WeekendInfo.TrackCountry;
+				case SettingsText.Content.Track_ExtraInfo:
+
+					StringBuilder extraInfo = new StringBuilder();
+					var km = IRSDK.normalizedSession.trackLengthInMeters / 1000.0f;
 					
+					extraInfo.AppendLine($"<b>Length</b>: {km:0.00} KM");
+					extraInfo.AppendLine($"<b>Turns</b>: {IRSDK.session?.WeekendInfo.TrackNumTurns} ");
+					extraInfo.AppendLine($"<b>Altitude</b>: {IRSDK.session?.WeekendInfo.TrackAltitude} ");
+					extraInfo.AppendLine($"<b>Pit Speed</b>: {IRSDK.session?.WeekendInfo.TrackPitSpeedLimit:00)} ");
+					extraInfo.AppendLine($"<b>Track Temp</b>: {IRSDK.session?.WeekendInfo.TrackSurfaceTemp} ");
+					extraInfo.AppendLine($"<b>Air Temp</b>: {IRSDK.session?.WeekendInfo.TrackAirTemp} ");
+					extraInfo.AppendLine($"<b>Fog</b>: {IRSDK.session?.WeekendInfo.TrackFogLevel} ");
+					var windDirRaw = IRSDK.session?.WeekendInfo.TrackWindDir ?? string.Empty;
+					double windDirRad = 0;
+					if (!string.IsNullOrWhiteSpace(windDirRaw))
+					{
+						var numeric = windDirRaw.Replace("rad", "", StringComparison.OrdinalIgnoreCase).Trim();
+						double.TryParse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture, out windDirRad);
+					}
+					var windDirCard = RadiansToCompassFromEastCCW(windDirRad);
+					extraInfo.AppendLine($"<b>Wind</b>: {IRSDK.session?.WeekendInfo.TrackWindVel} -  {windDirCard}");
+					extraInfo.AppendLine($"<b>Humidity</b>: {IRSDK.session?.WeekendInfo.TrackRelativeHumidity}");
+
+					return extraInfo.ToString();
 				
 				case SettingsText.Content.Driver_CarBehind_UserID:
 
@@ -1581,6 +1641,15 @@ namespace iRacingTVController
 				case SettingsText.Content.Driver_Position_Ordinal:
 
 					return ( normalizedCar?.displayedPosition >= 1 ) ? GetOrdinal( normalizedCar.displayedPosition ) : "";
+				
+				case SettingsText.Content.Driver_Position_FinalResults:
+					if (normalizedCar == null)
+					{
+						return ReturnErrorInDebugOrBlankInRelease();
+					}
+
+					var pos = CustomClassSystem.Instance?.Results?.GetCarClassPosition(normalizedCar);
+					return pos == null ? ReturnErrorInDebugOrBlankInRelease() : GetOrdinal(pos.Value);
 
 				case SettingsText.Content.Driver_QualifyLapTime_1:
 
@@ -1614,8 +1683,30 @@ namespace iRacingTVController
 					
 					return ( normalizedCar?.qualifyingPosition >= 1 ) ? "P" + normalizedCar.qualifyingPosition.ToString() : "";
 				
-				case SettingsText.Content.Driver_QualifyPosition_WithP_WithClass:
-					return ( normalizedCar?.qualifyingClassPosition >= 1 ) ? "In Class: P" + normalizedCar.qualifyingClassPosition.ToString() : ""; 
+				case SettingsText.Content.Driver_QualifyPosition_Class:
+
+					if (normalizedCar == null)
+					{
+						return "";
+					}
+					
+					//Calculate Class Quali Position
+					int localPos = 0;
+					var allPositions = IRSDK.normalizedData.GetCarsInQualifyingOverallOrder(true);
+					foreach (var car in allPositions)
+					{
+						if (car.classID == normalizedCar.classID)
+						{
+							localPos++;
+						}
+						
+						if (car == normalizedCar)
+						{
+							break;
+						}
+					}
+					
+					return ( localPos >= 1 ) ? $"P{localPos} ({normalizedCar.classID})" : ""; 
 
 				case SettingsText.Content.Driver_QualifyTime:
 				{
@@ -1952,8 +2043,117 @@ namespace iRacingTVController
 					}
 				}
 				
-				case SettingsText.Content.Driver_FinialGapAheadClass:
-					return normalizedCar.gapTimeFront.ToString();
+				case SettingsText.Content.RacePoints:
+					if (normalizedCar == null)
+					{
+						return ReturnErrorInDebugOrBlankInRelease();
+					}
+					
+					if (!normalizedCar.includeInLeaderboard)
+					{
+						return "";
+					}
+					
+					CustomClassSystem.Instance.Results?.UpdateFromPositionModel(IRSDK.session.SessionInfo.Sessions[session].ResultsPositions);
+
+					int pts = results.GetPointsForCar(normalizedCar).TotalPoints;
+					if (normalizedCar.carNumberRaw is 30 or 13)
+					{
+						pts += 1;
+					}
+					
+					return results == null ? "" : $"{pts} PTS";
+
+
+					break;
+				
+				case SettingsText.Content.RaceBounusPoints:
+					CustomClassSystem.Instance.Results?.UpdateFromPositionModel(IRSDK.session.SessionInfo.Sessions[session].ResultsPositions);
+
+					bool hasFl = results.GetPointsForCar(normalizedCar).hasFastestLap;
+					bool hasZeroX = results.GetPointsForCar(normalizedCar).hasZeroX;
+
+					if (normalizedCar.carNumberRaw is 30 or 13)
+					{
+						hasZeroX = true;
+					}
+
+
+					string bonus = String.Empty;
+
+					const string flString = "<color=purple>FL</color>";
+					const string zeroXString = "<color=green>0x</color>";
+
+					switch (hasFl)
+					{
+						case true when hasZeroX:
+							return $"{flString} | {zeroXString}";
+						case true:
+							return flString;
+					}
+
+					return hasZeroX ? zeroXString : string.Empty;
+
+				case SettingsText.Content.FinishTime_Classsed:
+
+					if (normalizedCar == null)
+					{
+						return ReturnErrorInDebugOrBlankInRelease();
+					}
+
+					if (!normalizedCar.includeInLeaderboard)
+					{
+						return "";
+					}
+
+
+					if (results == null)
+						return ReturnErrorInDebugOrBlankInRelease();
+					
+					CustomClassSystem.Instance.Results?.UpdateFromPositionModel(IRSDK.session.SessionInfo.Sessions[session].ResultsPositions);
+
+					CustomClassResults.OutReason outReason = results.GetOutReason(normalizedCar);
+					if (outReason != CustomClassResults.OutReason.Running)
+					{
+						switch (outReason)
+						{
+							case CustomClassResults.OutReason.Running:
+								return ReturnErrorInDebugOrBlankInRelease();
+								break;
+							case CustomClassResults.OutReason.Disconnected:
+								return "DNF";
+								break;
+							case CustomClassResults.OutReason.Disqualified:
+								return "DSQ";
+								break;
+							case CustomClassResults.OutReason.Unknown:
+								return "NC (UNK)";
+								break;
+							default:
+								return "NC";
+						}
+					}
+
+					if (results.IsClassLeader(normalizedCar))
+					{
+						return "";
+					}
+
+					int? lapsBehind = results.GetCarLapsBehindClassLeader(normalizedCar);
+					if (lapsBehind is > 0)
+					{
+						return $"+ {lapsBehind} LAPS";
+					}
+
+					float? timeBehind = results.GetCarTimeBehindClassLeader(normalizedCar);
+					if (timeBehind is > 0)
+					{
+						double tb = (double) timeBehind;
+						return $"+ {Program.GetTimeString(tb, true)}";
+					}
+					
+					break;
+				
 				
 				//Extra info decided for the driver. In quali this is OUTLAP / PIT. 
 				case SettingsText.Content.Driver_ExtraInfo:
@@ -2043,6 +2243,17 @@ namespace iRacingTVController
 			return "";
 		}
 
+
+
+		private static string ReturnErrorInDebugOrBlankInRelease()
+		{
+#if DEBUG
+			return "error";
+#else
+						return "";
+#endif
+		}
+
 		private static void GetSectorStatusColorBlob(SectorLapStatus sector, StringBuilder sb)
 		{
 			GetSectorStatusColour(sector, sb);
@@ -2072,6 +2283,25 @@ namespace iRacingTVController
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
+		}
+
+		// iRacing wind dir is in radians, 0 at East, increasing CCW.
+		// Map to 16-point compass (E, ENE, NE, ..., ESE).
+		private static string RadiansToCompassFromEastCCW(double radians)
+		{
+			var twoPi = Math.PI * 2.0;
+			radians %= twoPi;
+			if (radians < 0) radians += twoPi;
+
+			var degrees = radians * 180.0 / Math.PI;
+
+			string[] dirs = {
+				"E","ENE","NE","NNE","N","NNW","NW","WNW",
+				"W","WSW","SW","SSW","S","SSE","SE","ESE"
+			};
+
+			int index = (int)Math.Round(degrees / 22.5) % 16;
+			return dirs[index];
 		}
 
 		public static Color GetTextColor( SettingsText settingsText, NormalizedCar? normalizedCar )

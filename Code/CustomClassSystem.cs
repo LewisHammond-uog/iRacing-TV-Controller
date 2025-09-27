@@ -7,6 +7,8 @@ using System.Linq;
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.Configuration.Attributes;
+using irsdkSharp.Serialization.Models.Session.SessionInfo;
+using PositionModel = irsdkSharp.Serialization.Models.Fastest.PositionModel;
 
 namespace iRacingTVController;
 
@@ -25,7 +27,9 @@ public class CustomClassSystem
 	private Dictionary<string , CarClass> carsToClasses;
 	private Dictionary<string, CarClass> nameToClasses;
 		
-	private Dictionary<CarClass, List<string>> classLeaderboards;
+	private Dictionary<CarClass, List<string>> liveClassLeaderboard;
+
+	public CustomClassResults? Results { private set; get; }
 
 	private static CustomClassSystem? _instance;
 	public static CustomClassSystem Instance
@@ -51,10 +55,10 @@ public class CustomClassSystem
 		LoadClassesToColours(classToColourCSV);
 		LoadCars(classCSV);
 
-		classLeaderboards = new Dictionary<CarClass, List<string>>();
+		liveClassLeaderboard = new Dictionary<CarClass, List<string>>();
 		foreach (CarClass carclass in allClasses)
 		{
-			classLeaderboards.Add(carclass, new List<string>(carclass.CarNums.Count));
+			liveClassLeaderboard.Add(carclass, new List<string>(carclass.CarNums.Count));
 		}
 
 		defaultClass = new CarClass()
@@ -64,6 +68,9 @@ public class CustomClassSystem
 			Colour = Unity.Color.white,
 			RelativeSpeed = 0f,
 		};
+		allClasses.Add(defaultClass);
+
+		Results = new CustomClassResults(this);
 	}
 
 	public void Update(in List<NormalizedCar> sortedLeaderboardClass)
@@ -83,7 +90,7 @@ public class CustomClassSystem
 			
 			
 			var carClass = carsToClasses[carNumber];
-			classLeaderboards[carClass].Add(carNumber);
+			liveClassLeaderboard[carClass].Add(carNumber);
 		}
 	}
 
@@ -107,43 +114,7 @@ public class CustomClassSystem
 		return carsToClasses.GetValueOrDefault(carNum, defaultClass);
 	}
 	
-	public bool IsCarInClass(CarClass carClass, string carNum)
-	{
-		return carClass.CarNums.Contains(carNum);
-	}
-
-	public List<string> GetClassLeaderBoard(CarClass carClass)
-	{
-		return classLeaderboards[carClass];
-	}
-
-	public List<NormalizedCar> GetClassLeaderBoardAsNormalisedCar(CarClass carClass)
-	{
-		List<NormalizedCar> carsLeaderboard = new List<NormalizedCar>(classLeaderboards[carClass].Count);
-
-		foreach (var car in classLeaderboards[carClass])
-		{
-			NormalizedCar? thisNormCar = null;
-			foreach (NormalizedCar normCar in IRSDK.normalizedData.leaderboardSortedNormalizedCars)
-			{
-				if (normCar.carNumber == car)
-				{
-					thisNormCar = normCar;
-					break;
-				}
-			}
-
-			if (thisNormCar == null)
-			{
-				throw new InvalidOperationException("Failed to find car for class leaderboard");
-			}
-			
-			carsLeaderboard.Add(thisNormCar);
-		}
-
-		return carsLeaderboard;
-	}
-
+	
 	public Unity.Color GetColourForClass(CarClass carClass)
 	{
 		return carClass.Colour;
@@ -175,7 +146,7 @@ public class CustomClassSystem
 			return 1;
 		}
 		var carClass = carsToClasses[carNum];
-		var leaderboard = classLeaderboards[carClass];
+		var leaderboard = liveClassLeaderboard[carClass];
 		return leaderboard.IndexOf(carNum) + 1;
 	}
 	
