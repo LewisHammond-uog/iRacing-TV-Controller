@@ -48,6 +48,11 @@ public partial class CustomPointsSystem
 		foreach (CustomClassSystem.CarClass carClass in allClasses)
 		{
 			var classResults = resultsSystem.GetClassResults(carClass);
+			
+			if(classResults == null)
+			{
+				continue;
+			}
 
 			int currentPosForPoints = 1; //not the same as pos because DNF, DNQ do not count for points. Start at 1 for 1st
 			
@@ -61,9 +66,9 @@ public partial class CustomPointsSystem
 
 				pts.zeroXPoints = car.posCar.Incidents == 0 ? PointsAllocation.zeroIncidentsBounusPts : 0;
 
-				if (car.posCar.FastestLap < fastestLap.time)
+				if (car.posCar.FastestTime < fastestLap.time && car.posCar.FastestTime > 0)
 				{
-					fastestLap = (car.posCar.FastestLap, car.normCar);
+					fastestLap = (car.posCar.FastestTime, car.normCar);
 				}
 				
 				carToPoints.Add(car.normCar, pts);

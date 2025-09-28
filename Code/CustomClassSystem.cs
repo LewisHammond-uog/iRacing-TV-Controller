@@ -120,7 +120,7 @@ public class CustomClassSystem
 		return carClass.Colour;
 	}
 
-	public Unity.Color GetColourForClass(string className)
+	public Unity.Color GetColourForClass(string? className)
 	{
 		if (string.IsNullOrEmpty(className))
 		{

@@ -610,12 +610,12 @@ namespace iRacingTVController
 			ControlPanel_Subtitles_Button.IsChecked = subtitlesOn = Settings.overlay.subtitleEnabled;
 			ControlPanel_Intro_Button.IsChecked = introOn = Settings.overlay.introEnabled;
 
-			ControlPanel_C1_Button.IsChecked = customLayerOn[ 0 ] = Settings.overlay.imageSettingsDataDictionary[ "Custom1Layer1" ].imageType != SettingsImage.ImageType.None;
-			ControlPanel_C2_Button.IsChecked = customLayerOn[ 1 ] = Settings.overlay.imageSettingsDataDictionary[ "Custom2Layer1" ].imageType != SettingsImage.ImageType.None;
-			ControlPanel_C3_Button.IsChecked = customLayerOn[ 2 ] = Settings.overlay.imageSettingsDataDictionary[ "Custom3Layer1" ].imageType != SettingsImage.ImageType.None;
-			ControlPanel_C4_Button.IsChecked = customLayerOn[ 3 ] = Settings.overlay.imageSettingsDataDictionary[ "Custom4Layer1" ].imageType != SettingsImage.ImageType.None;
-			ControlPanel_C5_Button.IsChecked = customLayerOn[ 4 ] = Settings.overlay.imageSettingsDataDictionary[ "Custom5Layer1" ].imageType != SettingsImage.ImageType.None;
-			ControlPanel_C6_Button.IsChecked = customLayerOn[ 5 ] = Settings.overlay.imageSettingsDataDictionary[ "Custom6Layer1" ].imageType != SettingsImage.ImageType.None;
+			ControlPanel_C1_Button.IsChecked = customLayerOn[ 0 ];
+			ControlPanel_C2_Button.IsChecked = customLayerOn[ 1 ];
+			ControlPanel_C3_Button.IsChecked = customLayerOn[ 2 ];
+			ControlPanel_C4_Button.IsChecked = customLayerOn[ 3 ];
+			ControlPanel_C5_Button.IsChecked = customLayerOn[ 4 ];
+			ControlPanel_C6_Button.IsChecked = customLayerOn[ 5 ];
 
 			// update standings mode label
 			ControlPanel_Standings_Mode.Content = Settings.overlay.leaderboardSeparateBoards ? "Class" : "Full";
