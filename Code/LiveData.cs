@@ -49,6 +49,7 @@ namespace iRacingTVController
 		public LiveDataCustom[] liveDataCustom = new LiveDataCustom[ MaxNumCustom ];
 		
 		[JsonInclude] public bool isLiveSessionReplay = false;
+		[JsonInclude] public int champResultCurrentPage = 0;
 
 		public string seriesLogoTextureUrl = string.Empty;
 		public string trackLogoTextureUrl = string.Empty;
@@ -1397,7 +1398,7 @@ namespace iRacingTVController
 
 				case SettingsText.Content.Driver_Sectors:
 
-					if (IRSDK.normalizedSession.isInRaceSession || normalizedCar == null)
+					if (IRSDK.normalizedSession.isInRaceSession || IsLiveSessionInReplayMode() || normalizedCar == null)
 					{
 						return "";
 					}
@@ -1444,10 +1445,10 @@ namespace iRacingTVController
 					
 					extraInfo.AppendLine($"<b>Length</b>:<pos=60%> {km:0.00} KM");
 					extraInfo.AppendLine($"<b>Turns</b>:<pos=60%> {IRSDK.session?.WeekendInfo.TrackNumTurns} ");
-					extraInfo.AppendLine($"<b>Altitude</b>:<pos=60%> {IRSDK.session?.WeekendInfo.TrackAltitude} ");
-					extraInfo.AppendLine($"<b>Pit Speed</b>:<pos=60%> {IRSDK.session?.WeekendInfo.TrackPitSpeedLimit} ");
-					extraInfo.AppendLine($"<b>Track Temp</b>:<pos=60%> {IRSDK.session?.WeekendInfo.TrackSurfaceTemp} ");
-					extraInfo.AppendLine($"<b>Air Temp</b>:<pos=60%> {IRSDK.session?.WeekendInfo.TrackAirTemp} ");
+					extraInfo.AppendLine($"<b>Altitude</b>:<pos=60%> {FormatMeasurementAsInt(IRSDK.session?.WeekendInfo.TrackAltitude)} ");
+					extraInfo.AppendLine($"<b>Pit Speed</b>:<pos=60%> {FormatMeasurementAsInt(IRSDK.session?.WeekendInfo.TrackPitSpeedLimit)} ");
+					extraInfo.AppendLine($"<b>Track Temp</b>:<pos=60%> {FormatMeasurementAsInt(IRSDK.session?.WeekendInfo.TrackSurfaceTemp)} ");
+					extraInfo.AppendLine($"<b>Air Temp</b>:<pos=60%> {FormatMeasurementAsInt(IRSDK.session?.WeekendInfo.TrackAirTemp)} ");
 					extraInfo.AppendLine($"<b>Fog</b>:<pos=60%> {IRSDK.session?.WeekendInfo.TrackFogLevel} ");
 					var windDirRaw = IRSDK.session?.WeekendInfo.TrackWindDir ?? string.Empty;
 					double windDirRad = 0;
@@ -2310,6 +2311,8 @@ namespace iRacingTVController
 		}
 
 		
+		
+		
 		/// <summary>
 		/// Checks if the current session is live but temporarily replaying a section
 		/// </summary>
@@ -2329,6 +2332,45 @@ namespace iRacingTVController
 			return isLiveSession && rplay;
 		}
 
+		private static string FormatMeasurementAsInt(string? measurement)
+		{
+			if (string.IsNullOrWhiteSpace(measurement))
+				return string.Empty;
+    
+			// Find the first non-digit, non-decimal character
+			int unitStartIndex = -1;
+			for (int i = 0; i < measurement.Length; i++)
+			{
+				if (!char.IsDigit(measurement[i]) && measurement[i] != '.')
+				{
+					unitStartIndex = i;
+					break;
+				}
+			}
+    
+			// If no unit part found, just try to parse and round the whole string
+			if (unitStartIndex == -1)
+			{
+				if (double.TryParse(measurement, NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+				{
+					return ((int)Math.Round(value)).ToString();
+				}
+				return measurement;
+			}
+    
+			// Extract numeric part and unit part
+			string numericPart = measurement.Substring(0, unitStartIndex).Trim();
+			string unitPart = measurement.Substring(unitStartIndex).Trim();
+    
+			// Parse and round the numeric part
+			if (double.TryParse(numericPart, NumberStyles.Float, CultureInfo.InvariantCulture, out double numValue))
+			{
+				return $"{(int)Math.Round(numValue)} {unitPart}";
+			}
+    
+			// Return original if parsing fails
+			return measurement;
+		}
 
 
 		private static string ReturnErrorInDebugOrBlankInRelease()

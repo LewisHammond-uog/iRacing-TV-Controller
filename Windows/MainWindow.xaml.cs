@@ -1428,6 +1428,19 @@ namespace iRacingTVController
 			}
 		}
 
+		private void ControlPanel_Champ_PrevPage_Button_Click(object sender, EventArgs e)
+		{
+			if (LiveData.Instance.champResultCurrentPage > 0)
+			{
+				LiveData.Instance.champResultCurrentPage--;
+			}
+		}
+		
+		private void ControlPanel_Champ_NextPage_Button_Click(object sender, EventArgs e)
+		{
+			LiveData.Instance.champResultCurrentPage++;
+		}
+
 		private void ControlPanel_Standings_PrevPage_Button_Click( object sender, EventArgs e )
 		{
 			if ( LiveData.Instance.raceResultCurrentPage > 0 )
