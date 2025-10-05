@@ -47,6 +47,8 @@ namespace iRacingTVController
 		public LiveDataTrainer liveDataTrainer = new();
 		public LiveDataWebcamStreaming liveDataWebcamStreaming = new();
 		public LiveDataCustom[] liveDataCustom = new LiveDataCustom[ MaxNumCustom ];
+		
+		[JsonInclude] public bool isLiveSessionReplay = false;
 
 		public string seriesLogoTextureUrl = string.Empty;
 		public string trackLogoTextureUrl = string.Empty;
@@ -126,7 +128,7 @@ namespace iRacingTVController
 			{
 				classSystem = CustomClassSystem.Instance;
 			}
-
+			
 		}
 
 		public void Update()
@@ -186,6 +188,8 @@ namespace iRacingTVController
 			trackLogoTextureUrl = IRSDK.normalizedSession.trackLogoTextureUrl;
 			trackTextureUrl = IRSDK.normalizedSession.trackMapTextureUrl;
 
+			isLiveSessionReplay = IsLiveSessionInReplayMode();
+
 			IPC.readyToSendLiveData = true;
 		}
 
@@ -212,6 +216,7 @@ namespace iRacingTVController
 			liveDataControlPanel.subtitlesOn = MainWindow.Instance.subtitlesOn;
 			liveDataControlPanel.introOn = MainWindow.Instance.introOn;
 			liveDataControlPanel.customLayerOn = MainWindow.Instance.customLayerOn;
+			liveDataControlPanel.customLayerOn[3] = IsLiveSessionInReplayMode();
 		}
 
 		public void UpdateDrivers()
@@ -1299,6 +1304,7 @@ namespace iRacingTVController
 
 		public void UpdateCustom()
 		{
+			
 			for ( var i = 0; i < MaxNumCustom; i++ )
 			{
 				var layerNumber = i + 1;
@@ -1391,6 +1397,21 @@ namespace iRacingTVController
 
 				case SettingsText.Content.Driver_Sectors:
 
+					if (IRSDK.normalizedSession.isInRaceSession || normalizedCar == null)
+					{
+						return "";
+					}
+					
+					if (normalizedCar.isOnPitRoad || normalizedCar.isOutOfCar)
+					{
+						return "PIT";
+					}
+
+					if (normalizedCar.isOutLap)
+					{
+						return "OUT LAP";
+					}
+					
 					StringBuilder sectorTimes = new StringBuilder();;
 					List<SectorLapStatus> list = normalizedCar.GetCurrentLapSectorStatuses(fake: true);
 					for (int index = 0; index < list.Count; index++)
@@ -1436,7 +1457,8 @@ namespace iRacingTVController
 						double.TryParse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture, out windDirRad);
 					}
 					var windDirCard = RadiansToCompassFromEastCCW(windDirRad);
-					extraInfo.AppendLine($"<b>Wind</b>:<pos=60%> {IRSDK.session?.WeekendInfo.TrackWindVel} -  {windDirCard}");
+					string windSpd = FormatWindVelocityAsKph(IRSDK.session?.WeekendInfo.TrackWindVel);         
+					extraInfo.AppendLine($"<b>Wind</b>:<pos=60%> {windSpd} - {windDirCard}");
 					extraInfo.AppendLine($"<b>Humidity</b>:<pos=60%> {IRSDK.session?.WeekendInfo.TrackRelativeHumidity}");
 
 					return extraInfo.ToString();
@@ -1590,6 +1612,11 @@ namespace iRacingTVController
 
 					if ( normalizedCar != null )
 					{
+						if (IRSDK.normalizedSession.isInRaceSession)
+						{
+							return "";
+						}
+						
 						if (IRSDK.normalizedSession.isInQualifyingSession || IRSDK.normalizedSession.isInQualifyingSession)
 						{
 							if (normalizedCar.isOnPitRoad == true)
@@ -1844,6 +1871,15 @@ namespace iRacingTVController
 								}else if (normalizedCarInFront == null) //No Car in front = leader!
 								{
 									text = "LEADER";
+
+									if (Settings.overlay.telemetryIsBetweenCars)
+									{
+										text = "INTERVAL";
+									}
+									else
+									{
+										text = "GAP";
+									}
 								}
 								else if ( !IRSDK.normalizedData.isUnderCaution && ( normalizedCarInFront != null ) )
 								{
@@ -1974,6 +2010,11 @@ namespace iRacingTVController
 
 				case SettingsText.Content.ThisCar_LeaderboardClass:
 				{
+					if (splitLeaderboard == false)
+					{
+						return "All";
+					}
+					
 					if (normalizedCar == null)
 					{
 						return "";
@@ -2268,6 +2309,26 @@ namespace iRacingTVController
 			return "";
 		}
 
+		
+		/// <summary>
+		/// Checks if the current session is live but temporarily replaying a section
+		/// </summary>
+		/// <returns>True if it's a live session in replay mode, false otherwise</returns>
+		public static bool IsLiveSessionInReplayMode()
+		{
+			// First make sure iRacing is connected
+			if (!IRSDK.isConnected || IRSDK.data == null)
+				return false;
+
+			// Check if we're in a live session (not a full replay)
+			bool isLiveSession = !IRSDK.normalizedSession.isReplay;
+
+			bool rplay = Math.Abs(IRSDK.data.ReplaySessionTime - IRSDK.data.SessionTime) > 5f;
+			
+			// Return true if it's a live session with an active replay
+			return isLiveSession && rplay;
+		}
+
 
 
 		private static string ReturnErrorInDebugOrBlankInRelease()
@@ -2386,6 +2447,30 @@ namespace iRacingTVController
 
 			return targetString;
 		}
+		
+		/// <summary>
+		/// Converts wind velocity from m/s to kph and formats it as a string
+		/// </summary>
+		/// <param name="windVelString">Wind velocity string in format "X.XX m/s"</param>
+		/// <returns>Formatted string in kph, rounded to nearest whole number</returns>
+		public static string FormatWindVelocityAsKph(string windVelString)
+		{
+			if (string.IsNullOrWhiteSpace(windVelString))
+				return string.Empty;
+    
+			// Extract numeric value from "X.XX m/s" format
+			var numericPart = windVelString.Replace("m/s", "", StringComparison.OrdinalIgnoreCase).Trim();
+			if (double.TryParse(numericPart, NumberStyles.Float, CultureInfo.InvariantCulture, out double windVelMps))
+			{
+				// Convert m/s to kph (1 m/s = 3.6 kph) and round to nearest integer
+				int windVelKph = (int)Math.Round(windVelMps * 3.6);
+				return $"{windVelKph} kph";
+			}
+    
+			// Return original if parsing fails
+			return windVelString;
+		}
+
 
 		public static string GetOrdinal( int number )
 		{

@@ -592,6 +592,8 @@ namespace iRacingTVController
 		{
 			initializing++;
 
+			customLayerOn[3] = LiveData.IsLiveSessionInReplayMode();
+
 			Settings.UpdateCombinedDirector();
 			Settings.UpdateCombinedOverlay();
 
@@ -609,7 +611,7 @@ namespace iRacingTVController
 			ControlPanel_BattleChyron_Button.IsChecked = battleChyronOn = Settings.overlay.battleChyronEnabled;
 			ControlPanel_Subtitles_Button.IsChecked = subtitlesOn = Settings.overlay.subtitleEnabled;
 			ControlPanel_Intro_Button.IsChecked = introOn = Settings.overlay.introEnabled;
-
+			
 			ControlPanel_C1_Button.IsChecked = customLayerOn[ 0 ];
 			ControlPanel_C2_Button.IsChecked = customLayerOn[ 1 ];
 			ControlPanel_C3_Button.IsChecked = customLayerOn[ 2 ];
@@ -1620,7 +1622,7 @@ namespace iRacingTVController
 			customLayerOn[ 0 ] = ControlPanel_C1_Button.IsChecked ?? false;
 			customLayerOn[ 1 ] = ControlPanel_C2_Button.IsChecked ?? false;
 			customLayerOn[ 2 ] = ControlPanel_C3_Button.IsChecked ?? false;
-			customLayerOn[ 3 ] = ControlPanel_C4_Button.IsChecked ?? false;
+			customLayerOn[ 3 ] = LiveData.IsLiveSessionInReplayMode() == true;
 			customLayerOn[ 4 ] = ControlPanel_C5_Button.IsChecked ?? false;
 			customLayerOn[ 5 ] = ControlPanel_C6_Button.IsChecked ?? false;
 		}
