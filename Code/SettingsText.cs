@@ -92,7 +92,9 @@ namespace iRacingTVController
 			Track_ExtraInfo,
 			Driver_Position_FinalResults,
 			RacePoints,
-			RaceBounusPoints
+			RaceBounusPoints,
+			Driver_CarBehind_LapTimeDiff,
+			Driver_CarInFront_LapTimeDiff
 		};
 
 		public FontIndex fontIndex = FontIndex.None;

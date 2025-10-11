@@ -1,7 +1,9 @@
 ﻿
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.MemoryMappedFiles;
+using System.Text;
 using System.Threading;
 using System.Xml.Serialization;
 
@@ -86,12 +88,16 @@ namespace iRacingTVController
 			if ( readyToSendLiveData && ( mutexLiveData != null ) && ( memoryMappedViewAccessorLiveData != null ) )
 			{
 				var xmlSerializer = new XmlSerializer( typeof( LiveData ) );
+				
 
 				var memoryStream = new MemoryStream();
 
 				xmlSerializer.Serialize( memoryStream, LiveData.Instance );
 
 				var buffer = memoryStream.ToArray();
+				
+				string xmlData = Encoding.UTF8.GetString(buffer);
+				
 
 				var signalReceived = mutexLiveData.WaitOne( 250 );
 

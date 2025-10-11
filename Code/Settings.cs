@@ -375,6 +375,9 @@ namespace iRacingTVController
 				{ "VoiceOfLayer1", new SettingsImage() { imageType = SettingsImage.ImageType.Car, position = { x = 220, y = -48 }, size = { x = 400, y = 200 } } },
 				{ "VoiceOfLayer2", new SettingsImage() { imageType = SettingsImage.ImageType.None } },
 				{ "VoiceOfLayer3", new SettingsImage() { imageType = SettingsImage.ImageType.None } },
+				{ "LapCompAheadHelmet", new SettingsImage(){imageType = SettingsImage.ImageType.Helmet }},
+				{ "LapCompBehindHelmet", new SettingsImage(){imageType = SettingsImage.ImageType.Helmet }},
+				{ "LapCompCurrentHelmet", new SettingsImage(){imageType = SettingsImage.ImageType.Helmet }},
 			};
 
 			var oldImageSettingNames = new Dictionary<string, string>()
@@ -535,6 +538,8 @@ namespace iRacingTVController
 				{ "TrainerCountdown", new SettingsText() { fontIndex = SettingsText.FontIndex.FontC, fontSize = 21, alignment = TextAlignmentOptions.Top, position = { x = 10, y = 10 }, tintColor = { r = 0.69f, g = 0.71f, b = 0.694f } } },
 				{ "VoiceOfTextLayer1", new SettingsText() { fontIndex = SettingsText.FontIndex.FontB, fontSize = 30, position = { x = 30, y = 10 }, tintColor = { r = 0.434f, g = 0.434f, b = 0.434f }, content = SettingsText.Content.Translation_VoiceOf } },
 				{ "VoiceOfTextLayer2", new SettingsText() { fontIndex = SettingsText.FontIndex.FontA, fontSize = 38, position = { x = 30, y = 41 }, tintColor = { r = 0.137f, g = 0.122f, b = 0.125f }, content = SettingsText.Content.Driver_Name } },
+				{ "BehindGapOverLaps", new SettingsText(){content = SettingsText.Content.Driver_CarBehind_LapTimeDiff}},
+				{ "AheadGapOverLaps", new SettingsText(){content = SettingsText.Content.Driver_CarInFront_LapTimeDiff}}
 			};
 
 			var oldTextSettingNames = new Dictionary<string, string>()

@@ -9,6 +9,7 @@ using Aydsko.iRacingData.Common;
 using Aydsko.iRacingData.Member;
 
 using irsdkSharp.Serialization.Enums.Fastest;
+using irsdkSharp.Serialization.Models.Data;
 using irsdkSharp.Serialization.Models.Session.DriverInfo;
 
 using static iRacingTVController.Unity;
@@ -183,6 +184,8 @@ namespace iRacingTVController
 		public bool memberProfileRetrieved = false;
 		public MemberProfile? memberProfile = null;
 
+		public Dictionary<int, float> completedLapTimes;
+
 		public NormalizedCar( int carIdx )
 		{
 			this.carIdx = carIdx;
@@ -327,6 +330,8 @@ namespace iRacingTVController
 
 			memberProfileRetrieved = false;
 			memberProfile = null;
+
+			completedLapTimes = new Dictionary<int, float>();
 
 			for ( var i = 0; i < sessionTimeCheckpoints.Length; i++ )
 			{
@@ -702,7 +707,7 @@ namespace iRacingTVController
 				return;
 			}
 
-			var car = IRSDK.data.Cars[ carIdx ];
+			CarModel? car = IRSDK.data.Cars[ carIdx ];
 
 			wasOnPitRoad = isOnPitRoad;
 			isOnPitRoad = car.CarIdxOnPitRoad;
@@ -969,6 +974,8 @@ namespace iRacingTVController
 			gear = car.CarIdxGear;
 			rpm = Math.Max( 0, car.CarIdxRPM );
 
+			UpdateLaps(car);
+			
 			// Update sector timings after updating lap distance and times
 			UpdateSectorTimes();
 		}
@@ -976,6 +983,50 @@ namespace iRacingTVController
 		private static bool NearlyEqual( float a, float b, float eps = 0.0005f )
 		{
 			return Math.Abs( a - b ) <= eps;
+		}
+
+		private void UpdateLaps(CarModel? car)
+		{
+			if (car == null)
+			{
+				return;
+			}
+			int completedLaps = car.CarIdxLapCompleted;
+			float lastCompletedLapTime = car.CarIdxLastLapTime;
+			
+			if (completedLaps <= 0)
+			{
+				return;
+			}
+
+			if (lastCompletedLapTime <= 0)
+			{
+				return;
+			}
+
+			if (currentLapTime < 5f)
+			{
+				return;
+			}
+			
+
+			completedLapTimes.TryAdd(completedLaps, lastCompletedLapTime);
+		}
+
+		public float GetCurrentLapMinusNLapTime(int n)
+		{
+			if (IRSDK.data == null)
+			{
+				return -1f;
+			}
+
+			if (carIdx < 0)
+			{
+				return -1f;
+			}
+			
+			int intendedLap = IRSDK.data.Cars[carIdx].CarIdxLapCompleted - n;
+			return completedLapTimes.GetValueOrDefault(intendedLap, -1f);
 		}
 
 		public void UpdateSectorTimes()

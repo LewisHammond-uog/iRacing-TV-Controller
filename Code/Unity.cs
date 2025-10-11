@@ -256,6 +256,14 @@ namespace iRacingTVController
 					return new Color( 1f, 0f, 0f, 1f );
 				}
 			}
+			
+			public static Color green
+			{
+				get
+				{
+					return new Color( 0f, 1f, 0f, 1f );
+				}
+			}
 
 			public static Color Lerp( Color a, Color b, float t )
 			{

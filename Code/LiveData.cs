@@ -43,13 +43,14 @@ namespace iRacingTVController
 		[JsonInclude] public LiveDataTrackMap liveDataTrackMap = new();
 		public LiveDataPitLane liveDataPitLane = new();
 		[JsonInclude, XmlIgnore] public LiveDataEventLog liveDataEventLog = new();
-		public LiveDataHud liveDataHud = new();
-		public LiveDataTrainer liveDataTrainer = new();
-		public LiveDataWebcamStreaming liveDataWebcamStreaming = new();
+		[XmlIgnore] public LiveDataHud liveDataHud = new();
+		[XmlIgnore]public LiveDataTrainer liveDataTrainer = new();
+		[XmlIgnore]public LiveDataWebcamStreaming liveDataWebcamStreaming = new();
 		public LiveDataCustom[] liveDataCustom = new LiveDataCustom[ MaxNumCustom ];
 		
 		[JsonInclude] public bool isLiveSessionReplay = false;
 		[JsonInclude] public int champResultCurrentPage = 0;
+		[JsonInclude] public LiveDataLapComp liveDataLapComp = new LiveDataLapComp();
 
 		public string seriesLogoTextureUrl = string.Empty;
 		public string trackLogoTextureUrl = string.Empty;
@@ -184,6 +185,7 @@ namespace iRacingTVController
 			UpdateTrainer();
 			UpdateWebcamStreaming();
 			UpdateCustom();
+			UpdateLapTimeComparision();
 
 			seriesLogoTextureUrl = IRSDK.normalizedSession.seriesLogoTextureUrl;
 			trackLogoTextureUrl = IRSDK.normalizedSession.trackLogoTextureUrl;
@@ -192,6 +194,48 @@ namespace iRacingTVController
 			isLiveSessionReplay = IsLiveSessionInReplayMode();
 
 			IPC.readyToSendLiveData = true;
+		}
+
+		private void UpdateLapTimeComparision()
+		{
+			var normalizedCar = IRSDK.normalizedData.FindNormalizedCarByCarIdx( IRSDK.normalizedData.camCarIdx );
+			if (normalizedCar == null)
+			{
+				return;
+			}
+
+			string FormName(NormalizedCar? car)
+			{
+				return car == null ? "" : $"{car.familyName} #{car.carNumber}";
+			}
+			
+			liveDataLapComp.Clear();
+			
+			liveDataLapComp.aheadCarIdX = normalizedCar?.normalizedCarInFront?.carIdx ?? -1;
+			liveDataLapComp.aheadName = FormName(normalizedCar?.normalizedCarBehind);
+			
+			liveDataLapComp.behindCarIdX = normalizedCar?.normalizedCarBehind?.carIdx ?? -1;
+			liveDataLapComp.behindName = FormName(normalizedCar?.normalizedCarInFront);
+			
+			liveDataLapComp.currentIdX = normalizedCar?.carIdx ?? -1;
+			liveDataLapComp.currentName = FormName(normalizedCar);
+
+			for (int i = 0; i < LiveDataLapComp.historyCount; i++)
+			{
+				liveDataLapComp.carBehindLastLapsDiff[i] = GetTextContent(out _, "BehindGapOverLaps", normalizedCar, extraInt: i);
+				liveDataLapComp.carAheadLastLapsDiff[i] = GetTextContent(out _, "AheadGapOverLaps", normalizedCar, extraInt: i);
+				liveDataLapComp.thisCarLaps[i] = Program.GetTimeString(normalizedCar.GetCurrentLapMinusNLapTime(i), true);
+
+				if (IRSDK.normalizedData.lapNumber - i > 1)
+				{
+					liveDataLapComp.lapNums[i] = $"LAP {IRSDK.normalizedData.lapNumber - i}" ;
+				}
+				else
+				{
+					liveDataLapComp.lapNums[i] = "";
+				}
+
+			}
 		}
 
 		public void UpdateSteamVr()
@@ -1331,7 +1375,7 @@ namespace iRacingTVController
 			}
 		}
 
-		public string GetTextContent( out Color color, string key, NormalizedCar? normalizedCar = null, CustomClassSystem.CarClass? leaderboardClass = null )
+		public string GetTextContent( out Color color, string key, NormalizedCar? normalizedCar = null, CustomClassSystem.CarClass? leaderboardClass = null, int extraInt = 0 )
 		{
 			var settingsText = Settings.overlay.textSettingsDataDictionary[ key ];
 			
@@ -1517,6 +1561,47 @@ namespace iRacingTVController
 				case SettingsText.Content.Driver_CarInFront_UserID:
 
 					return normalizedCar?.normalizedCarInFront?.userId.ToString() ?? "";
+
+				case SettingsText.Content.Driver_CarInFront_LapTimeDiff:
+				{
+					if (normalizedCar == null)
+					{
+						return String.Empty;
+					}
+
+					float? rawTime = GetLapTimeComparision(normalizedCar, ComparisionMode.Ahead, extraInt);
+					if (rawTime == null)
+					{
+						return "NO LAP";
+					}
+
+					string plusMinus = rawTime.Value > 0 ? "+" : "-";
+					color = rawTime.Value > 0 ? Color.red : Color.green; 
+					string str = $"{plusMinus}{Program.GetTimeString(rawTime.Value, true)}";
+					
+					return str;
+				}
+
+				
+				case SettingsText.Content.Driver_CarBehind_LapTimeDiff:
+				{
+					if (normalizedCar == null)
+					{
+						return String.Empty;
+					}
+					
+					float? rawTime = GetLapTimeComparision(normalizedCar, ComparisionMode.Behind, extraInt);
+					if (rawTime == null)
+					{
+						return "NO LAP";
+					}
+					
+					string plusMinus = rawTime.Value > 0 ? "+" : "-";
+					color = rawTime.Value > 0 ? Color.red : Color.green; 
+					string str = $"{plusMinus}{Program.GetTimeString(rawTime.Value, true)}";
+					
+					return str;
+				}
 
 				case SettingsText.Content.Driver_CarInFront_Rating:
 
@@ -2256,8 +2341,10 @@ namespace iRacingTVController
 					}
 					
 					break;
-					
 
+				
+				
+				
 				case SettingsText.Content.Session_Name:
 				{
 					if ( Settings.overlay.translationDictionary.ContainsKey( IRSDK.normalizedSession.sessionName ) )
@@ -2310,8 +2397,45 @@ namespace iRacingTVController
 			return "";
 		}
 
+
+
+		private enum ComparisionMode
+		{
+			Ahead,
+			Behind
+		}
 		
-		
+		private static float? GetLapTimeComparision(NormalizedCar car, ComparisionMode m, int minsNLaps)
+		{
+			NormalizedCar? target;
+			switch (m)
+			{
+				case ComparisionMode.Ahead:
+					target = car.normalizedCarInFront;
+					break;
+				case ComparisionMode.Behind:
+					target = car.normalizedCarBehind;
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(m), m, null);
+			}
+
+			if (target == null)
+			{
+				return null;
+			}
+
+			float myLap = car.GetCurrentLapMinusNLapTime(minsNLaps);
+			float targetLap = target.GetCurrentLapMinusNLapTime(minsNLaps);
+
+			if (myLap < 0 || targetLap < 0)
+			{
+				return null;
+			}
+
+
+			return targetLap - myLap;
+		}
 		
 		/// <summary>
 		/// Checks if the current session is live but temporarily replaying a section
@@ -2542,4 +2666,6 @@ namespace iRacingTVController
 			}
 		}
 	}
+
+
 }
