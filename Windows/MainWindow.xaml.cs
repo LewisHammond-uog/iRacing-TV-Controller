@@ -13,7 +13,7 @@ using Microsoft.WindowsAPICodePack.Dialogs;
 using Dsafa.WpfColorPicker;
 
 using iRacingTVController.Windows;
-
+using irsdkSharp.Enums;
 using static iRacingTVController.Unity;
 
 namespace iRacingTVController
@@ -1113,7 +1113,7 @@ namespace iRacingTVController
 
 						if ( Director.isHolding )
 						{
-							ControlPanel_CameraControl_Hold_Button.BorderBrush = System.Windows.Media.Brushes.Green;
+							ControlPanel_CameraControl_Hold_Button.BorderBrush = System.Windows.Media.Brushes.Purple;
 							ControlPanel_CameraControl_Hold_Button.BorderThickness = new Thickness( 3.0 );
 						}
 						else
@@ -1365,20 +1365,32 @@ namespace iRacingTVController
 
 					UpdateCameraButton( ControlPanel_Camera_AutoCam_Button, cameraType == SettingsDirector.CameraType.AutoCam );
 
-					UpdateCameraButton( ControlPanel_Camera_C1_Button, cameraType == SettingsDirector.CameraType.Custom1 );
-					UpdateCameraButton( ControlPanel_Camera_C2_Button, cameraType == SettingsDirector.CameraType.Custom2 );
-					UpdateCameraButton( ControlPanel_Camera_C3_Button, cameraType == SettingsDirector.CameraType.Custom3 );
-					UpdateCameraButton( ControlPanel_Camera_C4_Button, cameraType == SettingsDirector.CameraType.Custom4 );
-					UpdateCameraButton( ControlPanel_Camera_C5_Button, cameraType == SettingsDirector.CameraType.Custom5 );
-					UpdateCameraButton( ControlPanel_Camera_C6_Button, cameraType == SettingsDirector.CameraType.Custom6 );
+					UpdateCameraButton( ControlPanel_Camera_C1_Button, !LiveData.IsLiveSessionInReplayMode(),  LiveData.IsLiveSessionInReplayMode(), "LIVE");
+					//UpdateCameraButton( ControlPanel_Camera_C2_Button, cameraType == SettingsDirector.CameraType.Custom2 );
+					//UpdateCameraButton( ControlPanel_Camera_C3_Button, cameraType == SettingsDirector.CameraType.Custom3 );
+					//UpdateCameraButton( ControlPanel_Camera_C4_Button, cameraType == SettingsDirector.CameraType.Custom4 );
+					//UpdateCameraButton( ControlPanel_Camera_C5_Button, cameraType == SettingsDirector.CameraType.Custom5 );
+					//UpdateCameraButton( ControlPanel_Camera_C6_Button, cameraType == SettingsDirector.CameraType.Custom6 );
 				} );
 			}
 		}
 
-		private void UpdateCameraButton( Button button, bool isActive )
+		private void UpdateCameraButton( Button button, bool isActive, bool highlight = false, string liveText =null )
 		{
+			if (highlight)
+			{
+				button.BorderBrush = System.Windows.Media.Brushes.OrangeRed;
+				button.Content = "NOT LIVE";
+				button.BorderThickness = new Thickness( 5.0 );
+				return;
+			}
+			
 			if ( IRSDK.targetCamEnabled && isActive )
 			{
+				if (liveText != null)
+				{
+					button.Content = "LIVE";
+				}
 				button.BorderBrush = System.Windows.Media.Brushes.Green;
 				button.BorderThickness = new Thickness( 3.0 );
 			}
@@ -1575,7 +1587,13 @@ namespace iRacingTVController
 
 		private void ControlPanel_Camera_C1_Button_Click( object sender, RoutedEventArgs e )
 		{
-			SetManualCamera( SettingsDirector.CameraType.Custom1 );
+			if (LiveData.Instance.isLiveSessionReplay)
+			{
+				IRSDK.SendMessage(new Message(BroadcastMessageTypes.ReplaySetPlayPosition, (int)ReplayPositionModeTypes.End, 0, 0));
+				IRSDK.SendMessage(new Message(BroadcastMessageTypes.ReplaySearch, (int)ReplaySearchModeTypes.ToEnd, 0, 0));
+				IRSDK.SendMessage(new Message(BroadcastMessageTypes.ReplaySetPlaySpeed, 1, 0, 0));
+			}
+			//SetManualCamera( SettingsDirector.CameraType.Custom1 );
 		}
 
 		private void ControlPanel_Camera_C2_Button_Click( object sender, RoutedEventArgs e )

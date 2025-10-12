@@ -208,16 +208,7 @@
                             <Button x:Name="ControlPanel_Camera_AutoCam_Button" Content="AutoCam" Height="25" Padding="3,0,3,0" Click="ControlPanel_Camera_AutoCam_Button_Click"/>
                             <Separator Margin="0,6,0,6"/>
                             <StackPanel Orientation="Horizontal">
-                                <Button x:Name="ControlPanel_Camera_C1_Button" Content="C1" Width="45" Height="25" Padding="3,0,3,0" Click="ControlPanel_Camera_C1_Button_Click"/>
-                                <Button x:Name="ControlPanel_Camera_C2_Button" Content="C2" Width="45" Height="25" Padding="3,0,3,0" Click="ControlPanel_Camera_C2_Button_Click"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <Button x:Name="ControlPanel_Camera_C3_Button" Content="C3" Width="45" Height="25" Padding="3,0,3,0" Click="ControlPanel_Camera_C3_Button_Click"/>
-                                <Button x:Name="ControlPanel_Camera_C4_Button" Content="C4" Width="45" Height="25" Padding="3,0,3,0" Click="ControlPanel_Camera_C4_Button_Click"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <Button x:Name="ControlPanel_Camera_C5_Button" Content="C5" Width="45" Height="25" Padding="3,0,3,0" Click="ControlPanel_Camera_C5_Button_Click"/>
-                                <Button x:Name="ControlPanel_Camera_C6_Button" Content="C6" Width="45" Height="25" Padding="3,0,3,0" Click="ControlPanel_Camera_C6_Button_Click"/>
+                                <Button x:Name="ControlPanel_Camera_C1_Button" Content="LIVE" Width="90" Height="25" Padding="3,0,3,0" Click="ControlPanel_Camera_C1_Button_Click"/>
                             </StackPanel>
                         </StackPanel>
                     </Grid>
