@@ -96,9 +96,6 @@ namespace iRacingTVController
 
 				var buffer = memoryStream.ToArray();
 				
-				string xmlData = Encoding.UTF8.GetString(buffer);
-				
-
 				var signalReceived = mutexLiveData.WaitOne( 250 );
 
 				if ( signalReceived )

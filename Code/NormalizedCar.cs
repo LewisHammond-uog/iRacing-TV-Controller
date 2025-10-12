@@ -991,8 +991,8 @@ namespace iRacingTVController
 			{
 				return;
 			}
-			int completedLaps = car.CarIdxLapCompleted;
-			float lastCompletedLapTime = car.CarIdxLastLapTime;
+			int completedLaps = lapCompletedLastFrame;
+			float lastCompletedLapTime = lastLapTime;
 			
 			if (completedLaps <= 0)
 			{
@@ -1004,13 +1004,18 @@ namespace iRacingTVController
 				return;
 			}
 
-			if (currentLapTime < 5f)
+			if (currentLapTime < 1f && !IRSDK.normalizedSession.isReplay)
 			{
 				return;
 			}
 			
 
 			completedLapTimes.TryAdd(completedLaps, lastCompletedLapTime);
+		}
+
+		public float GetTimeOnExactLap(int lap)
+		{
+			return completedLapTimes.GetValueOrDefault(lap, 0f);
 		}
 
 		public float GetCurrentLapMinusNLapTime(int n)

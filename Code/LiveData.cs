@@ -208,27 +208,91 @@ namespace iRacingTVController
 			{
 				return car == null ? "" : $"{car.familyName} #{car.carNumber}";
 			}
+
+			string GetTimeDiff(NormalizedCar? me, NormalizedCar? comparision, int lapNum)
+			{
+				if (me == null || comparision == null)
+				{
+					return "NO LAP";
+				}
+
+				float meLap = me.GetTimeOnExactLap(lapNum);
+				float compLap = comparision.GetTimeOnExactLap(lapNum);
+
+				if (meLap <= 0 || compLap <= 0)
+				{
+					return "NO LAP";
+				}
+				
+				float diff = meLap - compLap;
+
+				string pmString = diff > 0 ? "+" : "-";
+				string timeString = Program.GetTimeString(MathF.Abs(diff), true);
+
+				return $"{pmString}{timeString}";
+			}
+
+			NormalizedCar? GetCarInFrontForPosition(NormalizedCar me)
+			{
+				var inFrontRoad = me.normalizedCarInFront;
+				while (inFrontRoad != null && inFrontRoad != me)
+				{
+					if (inFrontRoad.overallPosition < me.overallPosition)
+					{
+						return inFrontRoad;
+					}
+
+					inFrontRoad = inFrontRoad.normalizedCarInFront;
+				}
+
+				return null;
+			}
+			
+			NormalizedCar? GetCarBehindForPosition(NormalizedCar me)
+			{
+				var behindRoad = me.normalizedCarBehind;
+				while (behindRoad != null && behindRoad != me)
+				{
+					if (behindRoad.overallPosition > me.overallPosition)
+					{
+						return behindRoad;
+					}
+
+					behindRoad = behindRoad.normalizedCarBehind;
+				}
+
+				return null;
+			}
 			
 			liveDataLapComp.Clear();
 			
-			liveDataLapComp.aheadCarIdX = normalizedCar?.normalizedCarInFront?.carIdx ?? -1;
-			liveDataLapComp.aheadName = FormName(normalizedCar?.normalizedCarBehind);
+			//TODO Find for position (overall) comparisions
+
+			var inFront = GetCarInFrontForPosition(normalizedCar);
+			var behind = GetCarBehindForPosition(normalizedCar);
 			
-			liveDataLapComp.behindCarIdX = normalizedCar?.normalizedCarBehind?.carIdx ?? -1;
-			liveDataLapComp.behindName = FormName(normalizedCar?.normalizedCarInFront);
+			liveDataLapComp.aheadCarIdX = inFront?.carIdx ?? -1;
+			liveDataLapComp.aheadName = FormName(inFront);
+			
+			liveDataLapComp.behindCarIdX = behind?.carIdx ?? -1;
+			liveDataLapComp.behindName = FormName(behind);
 			
 			liveDataLapComp.currentIdX = normalizedCar?.carIdx ?? -1;
 			liveDataLapComp.currentName = FormName(normalizedCar);
 
 			for (int i = 0; i < LiveDataLapComp.historyCount; i++)
 			{
-				liveDataLapComp.carBehindLastLapsDiff[i] = GetTextContent(out _, "BehindGapOverLaps", normalizedCar, extraInt: i);
-				liveDataLapComp.carAheadLastLapsDiff[i] = GetTextContent(out _, "AheadGapOverLaps", normalizedCar, extraInt: i);
-				liveDataLapComp.thisCarLaps[i] = Program.GetTimeString(normalizedCar.GetCurrentLapMinusNLapTime(i), true);
+				int lap = normalizedCar.lapCompletedLastFrame - i;
 
-				if (IRSDK.normalizedData.lapNumber - i > 1)
+				float thisLapTime = normalizedCar.GetTimeOnExactLap(lap);
+				
+				liveDataLapComp.carBehindLastLapsDiff[i] = GetTimeDiff(normalizedCar, normalizedCar.normalizedCarBehind, lap);
+				liveDataLapComp.carAheadLastLapsDiff[i] = GetTimeDiff(normalizedCar, normalizedCar.normalizedCarInFront, lap);
+				liveDataLapComp.thisCarLaps[i] =  thisLapTime > 0 ? Program.GetTimeString(thisLapTime, true) : "";
+
+				if (lap >= 1)
 				{
-					liveDataLapComp.lapNums[i] = $"LAP {IRSDK.normalizedData.lapNumber - i}" ;
+					liveDataLapComp.lapNums[i] = $"LAP {lap}" ;
 				}
 				else
 				{
@@ -1569,7 +1633,7 @@ namespace iRacingTVController
 						return String.Empty;
 					}
 
-					float? rawTime = GetLapTimeComparision(normalizedCar, ComparisionMode.Ahead, extraInt);
+					float? rawTime = GetLapTimeComparisionExactLap(normalizedCar, ComparisionMode.Ahead, extraInt);
 					if (rawTime == null)
 					{
 						return "NO LAP";
@@ -1590,7 +1654,7 @@ namespace iRacingTVController
 						return String.Empty;
 					}
 					
-					float? rawTime = GetLapTimeComparision(normalizedCar, ComparisionMode.Behind, extraInt);
+					float? rawTime = GetLapTimeComparisionExactLap(normalizedCar, ComparisionMode.Behind, extraInt);
 					if (rawTime == null)
 					{
 						return "NO LAP";
@@ -2403,6 +2467,38 @@ namespace iRacingTVController
 		{
 			Ahead,
 			Behind
+		}
+		
+		private static float? GetLapTimeComparisionExactLap(NormalizedCar car, ComparisionMode m, int exactLap)
+		{
+			NormalizedCar? target;
+			switch (m)
+			{
+				case ComparisionMode.Ahead:
+					target = car.normalizedCarInFront;
+					break;
+				case ComparisionMode.Behind:
+					target = car.normalizedCarBehind;
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(m), m, null);
+			}
+
+			if (target == null)
+			{
+				return null;
+			}
+
+			float myLap = car.GetCurrentLapMinusNLapTime(exactLap);
+			float targetLap = target.GetCurrentLapMinusNLapTime(exactLap);
+
+			if (myLap < 0 || targetLap < 0)
+			{
+				return null;
+			}
+
+
+			return targetLap - myLap;
 		}
 		
 		private static float? GetLapTimeComparision(NormalizedCar car, ComparisionMode m, int minsNLaps)

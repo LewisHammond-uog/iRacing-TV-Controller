@@ -266,14 +266,14 @@
                         <ToggleButton x:Name="ControlPanel_C2_Button" Content="🎙" Height="25" Padding="3,0,3,0" Checked="ControlPanel_ToggleButton_Updated" Unchecked="ControlPanel_ToggleButton_Updated" Grid.Column="13" FontSize="9" />
                         <ToggleButton x:Name="ControlPanel_C3_Button" Content="🏁" Height="25" Padding="3,0,3,0" Checked="ControlPanel_ToggleButton_Updated" Unchecked="ControlPanel_ToggleButton_Updated" Grid.Column="14" FontSize="9" />
                         <ToggleButton x:Name="ControlPanel_C4_Button" Content="C4" Height="25" Padding="3,0,3,0" Checked="ControlPanel_ToggleButton_Updated" Unchecked="ControlPanel_ToggleButton_Updated" Grid.Column="15" FontSize="9" />
-                        <ToggleButton x:Name="ControlPanel_C5_Button" Content="C5" Height="25" Padding="3,0,3,0" Checked="ControlPanel_ToggleButton_Updated" Unchecked="ControlPanel_ToggleButton_Updated" Grid.Column="16" FontSize="9" />
+                        <ToggleButton x:Name="ControlPanel_C5_Button" Content="⏱️" Height="25" Padding="3,0,3,0" Checked="ControlPanel_ToggleButton_Updated" Unchecked="ControlPanel_ToggleButton_Updated" Grid.Column="16" FontSize="9" />
                         <ToggleButton x:Name="ControlPanel_C6_Button" Content="C6" Height="25" Padding="3,0,3,0" Checked="ControlPanel_ToggleButton_Updated" Unchecked="ControlPanel_ToggleButton_Updated" Grid.Column="17" FontSize="9" />
                     </Grid>
                 </Grid>
             </TabItem>
             <TabItem Header="Session Flags" Padding="12,6,12,6">
                 <Grid Margin="6,6,6,6">
-                    <Grid.RowDefinitions>
+                    <Grid.RowDefinitions>                               
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
