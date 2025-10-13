@@ -9,7 +9,8 @@
         <RuntimeIdentifiers Condition="'$(Configuration)'=='Release' ">win-x64;osx-x64</RuntimeIdentifiers>
         <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
         <TargetFramework>net8.0</TargetFramework>
-         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     </PropertyGroup>
 
     <!-- Post build event scripts that deploy to stream deck -->
