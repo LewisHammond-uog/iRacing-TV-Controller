@@ -1592,6 +1592,9 @@ namespace iRacingTVController
 				IRSDK.SendMessage(new Message(BroadcastMessageTypes.ReplaySetPlayPosition, (int)ReplayPositionModeTypes.End, 0, 0));
 				IRSDK.SendMessage(new Message(BroadcastMessageTypes.ReplaySearch, (int)ReplaySearchModeTypes.ToEnd, 0, 0));
 				IRSDK.SendMessage(new Message(BroadcastMessageTypes.ReplaySetPlaySpeed, 1, 0, 0));
+				
+				Director.isHolding = false;
+				IRSDK.cameraSwitchWaitTimeRemaining = 0;
 			}
 			//SetManualCamera( SettingsDirector.CameraType.Custom1 );
 		}

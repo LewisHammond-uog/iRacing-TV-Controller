@@ -1,4 +1,5 @@
 ﻿
+using System;
 using System.Windows;
 
 namespace iRacingTVController
@@ -10,8 +11,21 @@ namespace iRacingTVController
 			Startup += AppStartup;
 		}
 
-		void AppStartup( object sender, StartupEventArgs e )
+		async void AppStartup( object sender, StartupEventArgs e )
 		{
+			try
+			{
+				await StreamDeckPlugin.Program.StartStreamDeckConnection(null);
+			}
+			catch (Exception exception)
+			{
+				Console.WriteLine(exception);
+				throw;
+			}
+
+			
+			
+			
 			Program.Initialize();
 
 			iRacingTVController.MainWindow.Instance.Initialize();

@@ -39,6 +39,7 @@
   <ItemGroup>
     <ProjectReference Include="..\irsdkSharp\src\irsdkSharp.Serialization\irsdkSharp.Serialization.csproj" />
     <ProjectReference Include="..\irsdkSharp\src\irsdkSharp\irsdkSharp.csproj" />
+    <ProjectReference Include="StreamDeckPlugin\StreamDeckPlugin.csproj" />
   </ItemGroup>
 
   <ItemGroup>
