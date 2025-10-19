@@ -1401,7 +1401,7 @@ namespace iRacingTVController
 			}
 		}
 
-		private void SetManualCamera( SettingsDirector.CameraType newCameraType )
+		internal void SetManualCamera( SettingsDirector.CameraType newCameraType )
 		{
 			if ( IRSDK.targetCamEnabled )
 			{
@@ -1440,7 +1440,7 @@ namespace iRacingTVController
 			}
 		}
 
-		private void ControlPanel_Champ_PrevPage_Button_Click(object sender, EventArgs e)
+		public void ControlPanel_Champ_PrevPage_Button_Click(object sender, EventArgs e)
 		{
 			if (LiveData.Instance.champResultCurrentPage > 0)
 			{
@@ -1448,12 +1448,12 @@ namespace iRacingTVController
 			}
 		}
 		
-		private void ControlPanel_Champ_NextPage_Button_Click(object sender, EventArgs e)
+		public void ControlPanel_Champ_NextPage_Button_Click(object sender, EventArgs? e)
 		{
 			LiveData.Instance.champResultCurrentPage++;
 		}
 
-		private void ControlPanel_Standings_PrevPage_Button_Click( object sender, EventArgs e )
+		public void ControlPanel_Standings_PrevPage_Button_Click( object sender, EventArgs e )
 		{
 			if ( LiveData.Instance.raceResultCurrentPage > 0 )
 			{
@@ -1461,7 +1461,7 @@ namespace iRacingTVController
 			}
 		}
 
-		private void ControlPanel_Standings_NextPage_Button_Click( object sender, EventArgs e )
+		public void ControlPanel_Standings_NextPage_Button_Click( object sender, EventArgs e )
 		{
 			if ( LiveData.Instance.raceResultCurrentPage < LiveData.Instance.raceResultPageCount - 1 )
 			{
@@ -1509,10 +1509,13 @@ namespace iRacingTVController
 
 		private void ControlPanel_CameraControl_Director_Button_Click( object sender, RoutedEventArgs e )
 		{
+			EnableDirectorNow();
+		}
+
+		internal void EnableDirectorNow()
+		{
 			Director.isEnabled = true;
-
 			IRSDK.targetCamFastSwitchEnabled = true;
-
 			normalizedCar = null;
 		}
 
@@ -1525,13 +1528,22 @@ namespace iRacingTVController
 
 		private void ControlPanel_CameraControl_Hold_Button_Click( object sender, RoutedEventArgs e )
 		{
+			HoldCam();
+		}
+
+		internal static void HoldCam()
+		{
 			Director.isHolding = !Director.isHolding;
 		}
 
 		private void ControlPanel_CameraControl_Reset_Button_Click( object sender, RoutedEventArgs e )
 		{
-			Director.isHolding = false;
+			ResetCam();
+		}
 
+		internal static void ResetCam()
+		{
+			Director.isHolding = false;
 			IRSDK.cameraSwitchWaitTimeRemaining = 0;
 		}
 
@@ -1587,6 +1599,12 @@ namespace iRacingTVController
 
 		private void ControlPanel_Camera_C1_Button_Click( object sender, RoutedEventArgs e )
 		{
+			GoLiveNow();
+			//SetManualCamera( SettingsDirector.CameraType.Custom1 );
+		}
+
+		internal static void GoLiveNow()
+		{
 			if (LiveData.Instance.isLiveSessionReplay)
 			{
 				IRSDK.SendMessage(new Message(BroadcastMessageTypes.ReplaySetPlayPosition, (int)ReplayPositionModeTypes.End, 0, 0));
@@ -1596,7 +1614,6 @@ namespace iRacingTVController
 				Director.isHolding = false;
 				IRSDK.cameraSwitchWaitTimeRemaining = 0;
 			}
-			//SetManualCamera( SettingsDirector.CameraType.Custom1 );
 		}
 
 		private void ControlPanel_Camera_C2_Button_Click( object sender, RoutedEventArgs e )

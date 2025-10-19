@@ -9,7 +9,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "irsdkSharp", "..\irsdkSharp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "irsdkSharp.Serialization", "..\irsdkSharp\src\irsdkSharp.Serialization\irsdkSharp.Serialization.csproj", "{CA09D199-EDBF-44A6-B96C-785829790C28}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamDeckPlugin", "StreamDeckPlugin\StreamDeckPlugin.csproj", "{C86A5018-2C03-4EBE-AB5F-94BB6D23129E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "irtvStreamDeckPlugin", "..\irtvStreamDeckPlugin\irtvStreamDeckPlugin.csproj", "{655324BC-73AD-41E0-8EF9-CCD724CFEEE9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StreamDeckCommunicator", "..\StreamDeckCommunicator\StreamDeckCommunicator.csproj", "{4CDCD49F-B1D0-48F8-A180-5BE90109283D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonStreamdeckTypes", "..\CommonStreamdeckTypes\CommonStreamdeckTypes.csproj", "{4904350F-62A2-4740-9B43-8BDB6B721917}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,10 +33,18 @@ Global
 		{CA09D199-EDBF-44A6-B96C-785829790C28}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA09D199-EDBF-44A6-B96C-785829790C28}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA09D199-EDBF-44A6-B96C-785829790C28}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C86A5018-2C03-4EBE-AB5F-94BB6D23129E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C86A5018-2C03-4EBE-AB5F-94BB6D23129E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C86A5018-2C03-4EBE-AB5F-94BB6D23129E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C86A5018-2C03-4EBE-AB5F-94BB6D23129E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{655324BC-73AD-41E0-8EF9-CCD724CFEEE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{655324BC-73AD-41E0-8EF9-CCD724CFEEE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{655324BC-73AD-41E0-8EF9-CCD724CFEEE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{655324BC-73AD-41E0-8EF9-CCD724CFEEE9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CDCD49F-B1D0-48F8-A180-5BE90109283D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CDCD49F-B1D0-48F8-A180-5BE90109283D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CDCD49F-B1D0-48F8-A180-5BE90109283D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CDCD49F-B1D0-48F8-A180-5BE90109283D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4904350F-62A2-4740-9B43-8BDB6B721917}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4904350F-62A2-4740-9B43-8BDB6B721917}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4904350F-62A2-4740-9B43-8BDB6B721917}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4904350F-62A2-4740-9B43-8BDB6B721917}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

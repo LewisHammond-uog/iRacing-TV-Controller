@@ -6,6 +6,8 @@ using System.Security.Policy;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using iRacingTVController.Communication;
+using StreamDeckCommunicator;
 
 namespace iRacingTVController
 {
@@ -33,6 +35,9 @@ namespace iRacingTVController
 
 		public static Random random = new Random();
 
+		public static ServerMessagePipe streamDeckServer;
+		private static EventController evtCtrlr;
+
 		public static void Initialize()
 		{
 			if ( !Directory.Exists( documentsFolder ) )
@@ -41,7 +46,6 @@ namespace iRacingTVController
 			}
 
 			var ccs = CustomClassSystem.Instance;
-			Console.WriteLine($"CCS Init + {ccs.GetHashCode()}");
 
 			Directory.SetCurrentDirectory( documentsFolder );
 
@@ -58,7 +62,10 @@ namespace iRacingTVController
 
 			IRSDK.ReloadAiRoster();
 
-			Task.Run( () => ProgramAsync() );
+			streamDeckServer = new ServerMessagePipe(SynchronizationContext.Current);
+			evtCtrlr = new EventController(streamDeckServer);
+			
+			Task.Run( ProgramAsync );
 		}
 
 		private static void ProgramAsync()
@@ -83,6 +90,11 @@ namespace iRacingTVController
 				stopwatch.Stop();
 
 				IPC.Shutdown();
+				
+				GC.KeepAlive(evtCtrlr);
+				GC.KeepAlive(streamDeckServer);
+				
+				streamDeckServer.Dispose();
 
 				LogFile.Write( "Async thread finished.\r\n" );
 			}

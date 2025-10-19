@@ -11,21 +11,8 @@ namespace iRacingTVController
 			Startup += AppStartup;
 		}
 
-		async void AppStartup( object sender, StartupEventArgs e )
+		void AppStartup( object sender, StartupEventArgs e )
 		{
-			try
-			{
-				await StreamDeckPlugin.Program.StartStreamDeckConnection(null);
-			}
-			catch (Exception exception)
-			{
-				Console.WriteLine(exception);
-				throw;
-			}
-
-			
-			
-			
 			Program.Initialize();
 
 			iRacingTVController.MainWindow.Instance.Initialize();

@@ -3,11 +3,8 @@ using Aydsko.iRacingData.Leagues;
 
 namespace iRacingTVController;
 
-public partial class CustomPointsSystem
+public partial class CustomPointsSystem(CustomClassResults resultsSystem, CustomClassSystem classSystem)
 {
-	private CustomClassResults resultsSystem;
-	private CustomClassSystem classSystem;
-
 	public class CarPoints
 	{
 		private readonly int basePoints;
@@ -29,24 +26,17 @@ public partial class CustomPointsSystem
 		}
 	}
 
-	private Dictionary<NormalizedCar, CarPoints> carToPoints;
-	
-	public CustomPointsSystem(CustomClassResults resultsSystem, CustomClassSystem classSystem)
-	{
-		this.resultsSystem = resultsSystem;
-		this.classSystem = classSystem;
+	private Dictionary<NormalizedCar, CarPoints> carToPoints = new Dictionary<NormalizedCar, CarPoints>();
 
-		carToPoints = new Dictionary<NormalizedCar, CarPoints>();
-	}
 
 	public void UpdateFromRaceResults()
 	{
 		carToPoints.Clear();
 		
 		var allClasses = classSystem.GetClasses();
-		(float time, NormalizedCar? car) fastestLap = (float.MaxValue, null);
 		foreach (CustomClassSystem.CarClass carClass in allClasses)
 		{
+			(float time, NormalizedCar? car) fastestLap = (float.MaxValue, null);
 			var classResults = resultsSystem.GetClassResults(carClass);
 			
 			if(classResults == null)
@@ -74,12 +64,14 @@ public partial class CustomPointsSystem
 				carToPoints.Add(car.normCar, pts);
 				currentPosForPoints++;
 			}
+			
+			if (fastestLap.car != null)
+			{
+				carToPoints[fastestLap.car].flPoints = PointsAllocation.fastestLapBounusPts;
+			}
 		}
 
-		if (fastestLap.car != null)
-		{
-			carToPoints[fastestLap.car].flPoints = PointsAllocation.fastestLapBounusPts;
-		}
+
 	}
 
 	public CarPoints GetPointsForCar(NormalizedCar car)

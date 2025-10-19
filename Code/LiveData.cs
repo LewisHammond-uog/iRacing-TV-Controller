@@ -6,9 +6,11 @@ using System.Text.Json.Serialization;
 using System.Xml.Serialization;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using Aydsko.iRacingData.Leagues;
 using irsdkSharp.Serialization.Enums.Fastest;
 using irsdkSharp.Serialization.Models.Session.SessionInfo;
+using StreamDeckCommunicator;
 using static iRacingTVController.Unity;
 
 namespace iRacingTVController
@@ -191,9 +193,20 @@ namespace iRacingTVController
 			trackLogoTextureUrl = IRSDK.normalizedSession.trackLogoTextureUrl;
 			trackTextureUrl = IRSDK.normalizedSession.trackMapTextureUrl;
 
+			bool prevLiveSessionReplay = isLiveSessionReplay;
 			isLiveSessionReplay = IsLiveSessionInReplayMode();
+			SendLiveSessionReplayEvent(prevLiveSessionReplay);
 
 			IPC.readyToSendLiveData = true;
+		}
+
+		private void SendLiveSessionReplayEvent(bool prevLiveSessionReplay)
+		{
+			if (prevLiveSessionReplay != isLiveSessionReplay)
+			{
+				var send = ServerMessagePipe.Instance!.SendMessageAsync(Events.IsInReplay);
+				send.Wait(20);
+			}
 		}
 
 		private void UpdateLapTimeComparision()
