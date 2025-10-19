@@ -79,6 +79,9 @@ public class EventController
 				MainWindow.Instance.customLayerOn[4] = !MainWindow.Instance.customLayerOn[4];
 				MainWindow.Instance.ControlPanel_C5_Button.IsChecked = MainWindow.Instance.customLayerOn[4];
 				break;
+			case Events.Overlays_BattleChyron:
+				ToggleButton(MainWindow.Instance.ControlPanel_BattleChyron_Button);
+				break;
 			case Events.Overlay_Next:
 				
 
@@ -105,6 +108,14 @@ public class EventController
 				
 				
 				break;
+			case Events.ClassOverallToggle:
+				MainWindow.Instance.ToggleStandingsMode();
+				break;
+			
+			case Events.GapIntervalToggle:
+				MainWindow.Instance.ToggleTimingMode();
+				break;
+				
 			default:
 				Console.WriteLine("ERROR! Unknown Message Type");
 				break;
