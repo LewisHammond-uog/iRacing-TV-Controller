@@ -17,6 +17,7 @@ public partial class LiveData
 
 		color = GetTextColor(settingsText, normalizedCar);
 
+		const float msToMph = 3.6f;
 		switch (settingsText.content)
 		{
 			case SettingsText.Content.None:
@@ -354,7 +355,7 @@ public partial class LiveData
 				{
 					if (IRSDK.normalizedSession.isInRaceSession)
 					{
-						return "";
+						return $"";
 					}
 
 					if (IRSDK.normalizedSession.isInQualifyingSession || IRSDK.normalizedSession.isInQualifyingSession)
@@ -567,7 +568,7 @@ public partial class LiveData
 				else
 				{
 					return
-						$"{Math.Abs(normalizedCar.speedInMetersPerSecond) * (IRSDK.normalizedData.displayIsMetric ? 3.6f : 2.23694f):0} {(IRSDK.normalizedData.displayIsMetric ? Settings.overlay.translationDictionary["KPH"].translation : Settings.overlay.translationDictionary["MPH"].translation)}";
+						$"{Math.Abs(normalizedCar.speedInMetersPerSecond) * (IRSDK.normalizedData.displayIsMetric ? msToMph : 2.23694f):0} {(IRSDK.normalizedData.displayIsMetric ? Settings.overlay.translationDictionary["KPH"].translation : Settings.overlay.translationDictionary["MPH"].translation)}";
 				}
 
 			case SettingsText.Content.Driver_Telemetry:

@@ -166,13 +166,14 @@ namespace iRacingTVController
 			}
 
 			Settings.UpdateCombinedOverlay();
-
+			
+			
 			UpdateSteamVr();
 			UpdateControlPanel();
 			UpdateDrivers();
 			UpdateRaceStatus();
-			UpdateLeaderboard( ref liveDataLeaderboardsWebPage, false );
-			UpdateLeaderboard( ref liveDataLeaderboards, true );
+			UpdateLeaderboard(ref liveDataLeaderboardsWebPage, false);
+			UpdateLeaderboard(ref liveDataLeaderboards, true);
 			UpdateRaceResult();
 			UpdateTrackMap();
 			UpdatePitLane();
@@ -188,6 +189,8 @@ namespace iRacingTVController
 			UpdateWebcamStreaming();
 			UpdateCustom();
 			UpdateLapTimeComparision();
+			UpdateYellowFlags();
+			
 
 			seriesLogoTextureUrl = IRSDK.normalizedSession.seriesLogoTextureUrl;
 			trackLogoTextureUrl = IRSDK.normalizedSession.trackLogoTextureUrl;
@@ -196,7 +199,6 @@ namespace iRacingTVController
 			bool prevLiveSessionReplay = isLiveSessionReplay;
 			isLiveSessionReplay = IsLiveSessionInReplayMode();
 			SendLiveSessionReplayEvent(prevLiveSessionReplay);
-
 			IPC.readyToSendLiveData = true;
 		}
 

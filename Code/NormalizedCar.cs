@@ -118,6 +118,7 @@ namespace iRacingTVController
 
 		public float distanceMovedInMeters = 0;
 		public float speedInMetersPerSecond = 0;
+		public float speedInKph => speedInMetersPerSecond * 3.6f;
 
 		public string carLogoTextureUrl = string.Empty;
 		public string carNumberTextureUrl = string.Empty;

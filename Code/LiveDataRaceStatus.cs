@@ -11,6 +11,7 @@ namespace iRacingTVController
 		[JsonInclude] public bool showGreenLight = false;
 		[JsonInclude] public bool showWhiteLight = false;
 		[JsonInclude] public bool showYellowLight = false;
+		[JsonInclude] public int yellowSectors = 0;
 
 		[JsonInclude] public string textLayer1 = string.Empty;
 		[JsonInclude] public string textLayer2 = string.Empty;

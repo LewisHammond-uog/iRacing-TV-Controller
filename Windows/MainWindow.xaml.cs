@@ -1471,6 +1471,11 @@ namespace iRacingTVController
 
 		private void ControlPanel_Standings_Mode_Button_Click( object sender, EventArgs e )
 		{
+			ToggleStandingsMode();
+		}
+
+		internal void ToggleStandingsMode()
+		{
 			// Toggle Separate Boards (Full vs Class)
 			var current = Settings.overlay.leaderboardSeparateBoards;
 
@@ -1487,6 +1492,11 @@ namespace iRacingTVController
 		}
 
 		private void ControlPanel_Standings_Timing_Button_Click( object sender, EventArgs e )
+		{
+			ToggleTimingMode();
+		}
+
+		internal void ToggleTimingMode()
 		{
 			// Toggle Gap vs Interval (to leader vs to car in front)
 			var current = Settings.overlay.telemetryIsBetweenCars;
